@@ -15,19 +15,16 @@ require 'pry-remote'
 # Ncurses tutorial: http://jbwyatt.com/ncurses.html#input
 
 # TODO
-# The top and bottom one are out of sync when there has been scrolling. Indexes are off
-# What is going on with the next line flashing? Check the TODO
-# Figure out how scrolling works (scroll function)
-# Key to stop scrolling the requests
 # Key for full screen
 # Print line at bottom with key legend
-# Clear the screen key
+# TODO Ctrl-C signal handler
 
 # LATER
 # Button for line wrapping
 # Handle requests that don't have a uuid
 # Handle stack traces
 # Collapse columns of the input by pressing 1, 2, 3.
+# Colored output
 # Conver the ansi color codes to proper colors
 # We go too far back with tail -n. Have to forward a bit when we overshoot.
 
@@ -42,8 +39,6 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-p options
-
 @log = File.open("/tmp/log", "w+")
 
 if ARGV[-1]
@@ -53,13 +48,6 @@ else
   fd = IO.sysopen('/dev/tty', 'r')
   $stdin.reopen(IO.new(fd))
 end
-
-# This doesn't work. It looks like curses opens it's own input manually instead
-# of using stdin
-# @input = IO.new($stdin.fileno)
-# fd = IO.sysopen('/dev/tty', 'r')
-# $stdin = IO.new(fd)
-# STDIN = $stdin
 
 if go_back_count
   stats = @input.stat
@@ -74,6 +62,18 @@ if go_back_count
   end
 end
 
+def init
+  @currently_selected = 0
+  @requests_first = 0
+  @requests_current = 0
+  @requests_last = 0
+
+  @requests_scrolling = true
+
+  @requests = {}
+  @request_queue = []
+end
+
 def log(msg)
   @log.puts(msg)
   @log.flush
@@ -84,19 +84,45 @@ def get_input(win)
   log("INPUT: #{str}") unless str.empty?
   case str
   when 'j'
-    @currently_selected = [@currently_selected + 1, win.maxy - 1, @requests.length - 1].min
+    log("req #{@requests_current}, #{@requests_first}, #{@requests_last}")
+    @requests_current = [@requests_current + 1, @requests.length].min
+    if @requests_current > @requests_last
+      @requests_last = @requests_current
+      @requests_first += 1
+      log("slide down")
+    end
+    log("ref #{@requests_current}, #{@requests_first}, #{@requests_last}")
     @redraw = true
   when 'k'
-    @currently_selected = [@currently_selected - 1, 0].max
+    @requests_current = [@requests_current - 1, 0].max
+    log("req #{@requests_current}, #{@requests_first}, #{@requests_last}")
+    if @requests_current < @requests_first
+      @requests_first = @requests_current
+      @requests_last -= 1
+      log("slide up")
+    end
+    log("ref #{@requests_current}, #{@requests_first}, #{@requests_last}")
+    @redraw = true
+  when 'i'
+    # Prevent scrolling on the top window
+    @requests_scrolling = !@requests_scrolling
+
+    if @requests_scrolling
+      @requests_last = @requests.length
+      @requests_current = @requests_last
+      @requests_first = [0, @requests_last - win.maxy].max
+    end
+  when 'c'
+    init
     @redraw = true
   when 'q'
     exit 0
   when 'p'
-    sleep 40
+    sleep 10
   end
 end
 
-def handle_lines(raw_input)
+def handle_lines(raw_input, win)
   raw_input.gsub!(/\e\[\d+m/, '')
 
   while true
@@ -105,23 +131,15 @@ def handle_lines(raw_input)
     # If no match, then line contains the rest
     return line if raw_input.empty? && sep.empty?
 
-    handle_line(line)
+    handle_line(line, win)
 
     return line if raw_input.empty?
   end
 end
 
-def handle_line(line)
+def handle_line(line, win)
   # Remove ansi shell colors
   line.gsub!(/\e\[\d+m/, '')
-  # TODO It's definitely this. If I replace these in the file it works. But
-  # this isn't getting the job done.
-  line.gsub!(/\[0m/, '')
-  # Try outputting the lines to a file and see if the character is still there
-  # And it isn't... What the heck?
-  # TODO I think it's really just the empty lines that is the issue
-  line.gsub!('[0m', '')
-  line.gsub!(/.\[0m/, '')
 
   return if line.empty?
 
@@ -132,10 +150,17 @@ def handle_line(line)
     if @requests[uuid].nil?
       @request_queue << uuid
       @requests[uuid] = []
-      # log("NEW REQUEST-----------------------")
+
+      if @requests_scrolling
+        @requests_last += 1
+        if @requests_last - @requests_first > win.maxy
+          log "#{@requests_first}, #{@requests_last}, #{@requests_current}"
+          @requests_first += 1
+          @requests_current = [@requests_current, @requests_first].max
+        end
+      end
     end
     @requests[uuid] << line
-    # log("Enqueuing '#{line}'") if @requests[uuid].length < 10
     @redraw = true
   end
 end
@@ -143,10 +168,11 @@ end
 def redraw(win)
   return unless @redraw
 
-  #win.clear This works but makes for some really bad flashing
   win.attron(Curses.color_pair(1))
-  @request_queue.last(win.maxy).each_with_index do |request, i|
-    if i == @currently_selected
+  (@requests_first..[@requests_last, @request_queue.length].min).each_with_index do |line_index, i|
+    request = @request_queue[line_index]
+    next unless request
+    if line_index == @requests_current
       win.attron(Curses.color_pair(2))
     else
       win.attron(Curses.color_pair(1))
@@ -154,14 +180,9 @@ def redraw(win)
     lines = @requests[request]
     # TODO This is super inefficient. Cache it.
     first_line = lines.find { |line| line =~ /Processing/ } || lines.first
-    # TODO Debugging
-    # if first_line =~ /ba44/
-      # $stop = true
-      # binding.remote_pry
-    # end
+
     win.setpos(i, 0)
     win.addstr(first_line[0..win.maxx - 1])
-    # win.addstr("#{i}" * (win.maxx - 1)) # Debugging with line numbers
     win.clrtoeol()
   end
 
@@ -172,10 +193,9 @@ def redraw(win)
 end
 
 def draw_request(win)
-  selected_request = @request_queue[@currently_selected]
+  selected_request = @request_queue.last(win.maxy)[@currently_selected]
   lines = @requests[selected_request]
   return if !lines
-  # lines.last(win.maxy).each_with_index do |line, i|
   lines[0..win.maxy].each_with_index do |line, i|
     win.attron(Curses.color_pair(1))
     win.setpos(i, 0)
@@ -187,8 +207,6 @@ def draw_request(win)
 
   win.refresh
 end
-
-@currently_selected = 0
 
 Curses.init_screen
 
@@ -204,8 +222,7 @@ win.nodelay = true
 
 log("Max xy #{win.maxx}x#{win.maxy}")
 
-@requests = {}
-@request_queue = []
+init
 
 Curses.start_color
 Curses.curs_set(0) # Hide the cursor
@@ -215,7 +232,7 @@ Curses.noecho # Do not echo characters typed by the user
 Curses.init_pair(1, 15, 0)
 Curses.init_pair(2, 0, 15)
 
-@redraw = false
+@redraw = true
 
 raw_input = ""
 
@@ -225,7 +242,7 @@ while true
   rescue IO::EAGAINWaitReadable, EOFError
     # No input to read yet
   end
-  raw_input = handle_lines(raw_input) unless $stop
+  raw_input = handle_lines(raw_input, win)
   get_input(win)
   redraw(win)
   draw_request(win2)

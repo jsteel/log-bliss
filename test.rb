@@ -4,6 +4,9 @@ require 'optparse'
 require 'curses'
 require 'pry-remote'
 
+require './window_manager'
+require './request_queue'
+
 # [20:44:47.238] [request_uuid:rake-e857b461] Rails schema is uncached. Reading from the database now data_sources/8c9fbaa08ae19d9ee9f298b7af242f11314ca04c}
 # Helpful tutorial: https://www.2n.pl/blog/basics-of-curses-library-in-ruby-make-awesome-terminal-apps
 
@@ -15,7 +18,7 @@ require 'pry-remote'
 # Ncurses tutorial: http://jbwyatt.com/ncurses.html#input
 
 # TODO
-# Key for full screen
+# Scroll for request window
 # Print line at bottom with key legend
 # TODO Ctrl-C signal handler
 
@@ -39,7 +42,9 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-@log = File.open("/tmp/log", "w+")
+require 'logger'
+
+$logger = Logger.new("/tmp/log")
 
 if ARGV[-1]
   @input = File.open(ARGV[-1], "r")
@@ -62,59 +67,34 @@ if go_back_count
   end
 end
 
-def init
-  @currently_selected = 0
-  @requests_first = 0
-  @requests_current = 0
-  @requests_last = 0
-
-  @requests_scrolling = true
-
-  @requests = {}
-  @request_queue = []
-end
-
-def log(msg)
-  @log.puts(msg)
-  @log.flush
-end
-
-def get_input(win)
-  str = win.getstr.to_s.chomp
-  log("INPUT: #{str}") unless str.empty?
+def get_input(win_manager, request_queue)
+  str = win_manager.win.getstr.to_s.chomp
+  $logger.info("INPUT: #{str}") unless str.empty?
   case str
   when 'j'
-    log("req #{@requests_current}, #{@requests_first}, #{@requests_last}")
-    @requests_current = [@requests_current + 1, @requests.length].min
-    if @requests_current > @requests_last
-      @requests_last = @requests_current
-      @requests_first += 1
-      log("slide down")
-    end
-    log("ref #{@requests_current}, #{@requests_first}, #{@requests_last}")
-    @redraw = true
+    request_queue.move_cursor_down
+    win_manager.redraw = true
   when 'k'
-    @requests_current = [@requests_current - 1, 0].max
-    log("req #{@requests_current}, #{@requests_first}, #{@requests_last}")
-    if @requests_current < @requests_first
-      @requests_first = @requests_current
-      @requests_last -= 1
-      log("slide up")
-    end
-    log("ref #{@requests_current}, #{@requests_first}, #{@requests_last}")
-    @redraw = true
+    request_queue.move_cursor_up
+    win_manager.redraw = true
+  # when 'm'
+  #   request_queue.move_trace_cursor_down
+  # when ','
+  #   request_queue.move_trace_cursor_up
   when 'i'
-    # Prevent scrolling on the top window
-    @requests_scrolling = !@requests_scrolling
-
-    if @requests_scrolling
-      @requests_last = @requests.length
-      @requests_current = @requests_last
-      @requests_first = [0, @requests_last - win.maxy].max
+    request_queue.prevent_scrolling(win_manager.win.maxy)
+  when 'u'
+    # Split windows
+    if win_manager.screen_layout == :split_horizontal
+      win_manager.screen_layout = :full_request
+    elsif win_manager.screen_layout == :full_request
+      win_manager.screen_layout = :full_index
+    else
+      win_manager.screen_layout = :split_horizontal
     end
   when 'c'
-    init
-    @redraw = true
+    request_queue.reset
+    win_manager = true
   when 'q'
     exit 0
   when 'p'
@@ -122,7 +102,7 @@ def get_input(win)
   end
 end
 
-def handle_lines(raw_input, win)
+def handle_lines(raw_input, win_manager, request_queue)
   raw_input.gsub!(/\e\[\d+m/, '')
 
   while true
@@ -131,13 +111,13 @@ def handle_lines(raw_input, win)
     # If no match, then line contains the rest
     return line if raw_input.empty? && sep.empty?
 
-    handle_line(line, win)
+    handle_line(line, win_manager, request_queue)
 
     return line if raw_input.empty?
   end
 end
 
-def handle_line(line, win)
+def handle_line(line, win_manager, request_queue)
   # Remove ansi shell colors
   line.gsub!(/\e\[\d+m/, '')
 
@@ -147,92 +127,13 @@ def handle_line(line, win)
 
   if match
     uuid = match[2]
-    if @requests[uuid].nil?
-      @request_queue << uuid
-      @requests[uuid] = []
-
-      if @requests_scrolling
-        @requests_last += 1
-        if @requests_last - @requests_first > win.maxy
-          log "#{@requests_first}, #{@requests_last}, #{@requests_current}"
-          @requests_first += 1
-          @requests_current = [@requests_current, @requests_first].max
-        end
-      end
-    end
-    @requests[uuid] << line
-    @redraw = true
+    request_queue.add_request(uuid, line, win_manager.win.maxy)
+    win_manager.redraw = true
   end
 end
 
-def redraw(win)
-  return unless @redraw
-
-  win.attron(Curses.color_pair(1))
-  (@requests_first..[@requests_last, @request_queue.length].min).each_with_index do |line_index, i|
-    request = @request_queue[line_index]
-    next unless request
-    if line_index == @requests_current
-      win.attron(Curses.color_pair(2))
-    else
-      win.attron(Curses.color_pair(1))
-    end
-    lines = @requests[request]
-    # TODO This is super inefficient. Cache it.
-    first_line = lines.find { |line| line =~ /Processing/ } || lines.first
-
-    win.setpos(i, 0)
-    win.addstr(first_line[0..win.maxx - 1])
-    win.clrtoeol()
-  end
-
-  win.setpos(win.cury + 1, 0)
-  (win.maxy - win.cury - 1).times { win.deleteln }
-
-  win.refresh
-end
-
-def draw_request(win)
-  selected_request = @request_queue.last(win.maxy)[@currently_selected]
-  lines = @requests[selected_request]
-  return if !lines
-  lines[0..win.maxy].each_with_index do |line, i|
-    win.attron(Curses.color_pair(1))
-    win.setpos(i, 0)
-    win.addstr(line[0..win.maxx - 1])
-    win.clrtoeol()
-  end
-
-  (win.maxy - 2 - win.cury).times { win.deleteln }
-
-  win.refresh
-end
-
-Curses.init_screen
-
-log("Screen #{Curses.lines.to_s}x#{Curses.cols.to_s}")
-half_lines = Curses.lines / 2
-# height, width, top, left
-win = Curses::Window.new(half_lines.floor, 0, 0, 0)
-win3 = Curses::Window.new(1, 0, half_lines.floor, 0)
-win3.addstr("━" * win3.maxx)
-win3.refresh
-win2 = Curses::Window.new(half_lines.ceil, 0, half_lines.floor + 1, 0)
-win.nodelay = true
-
-log("Max xy #{win.maxx}x#{win.maxy}")
-
-init
-
-Curses.start_color
-Curses.curs_set(0) # Hide the cursor
-Curses.noecho # Do not echo characters typed by the user
-
-# List of colors: https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
-Curses.init_pair(1, 15, 0)
-Curses.init_pair(2, 0, 15)
-
-@redraw = true
+request_queue = RequestQueue.new
+win_manager = WindowManager.new(request_queue)
 
 raw_input = ""
 
@@ -242,11 +143,9 @@ while true
   rescue IO::EAGAINWaitReadable, EOFError
     # No input to read yet
   end
-  raw_input = handle_lines(raw_input, win)
-  get_input(win)
-  redraw(win)
-  draw_request(win2)
-  @redraw = false
+  raw_input = handle_lines(raw_input, win_manager, request_queue)
+  get_input(win_manager, request_queue)
+  win_manager.render
 end
 
 # Reset the terminal

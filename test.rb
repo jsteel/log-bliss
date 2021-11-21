@@ -19,8 +19,10 @@ require './request_queue'
 
 # TODO
 # Scroll for request window
+#  Can do this by refactoring the request queue. The current line is always the same as the first line. Then all the logic works the same
 # Print line at bottom with key legend
 # TODO Ctrl-C signal handler
+# Tail -F doesn't quite work
 
 # LATER
 # Button for line wrapping
@@ -127,7 +129,7 @@ def handle_line(line, win_manager, request_queue)
 
   if match
     uuid = match[2]
-    request_queue.add_request(uuid, line, win_manager.win.maxy)
+    request_queue.add_request(uuid, line, win_manager.win.maxy, win_manager.win2&.maxy)
     win_manager.redraw = true
   end
 end
@@ -137,16 +139,18 @@ win_manager = WindowManager.new(request_queue)
 
 raw_input = ""
 
-while true
-  begin
-    raw_input += @input.read_nonblock(100)
-  rescue IO::EAGAINWaitReadable, EOFError
-    # No input to read yet
+begin
+  while true
+    begin
+      raw_input += @input.read_nonblock(100)
+    rescue IO::EAGAINWaitReadable, EOFError
+      # No input to read yet
+    end
+    raw_input = handle_lines(raw_input, win_manager, request_queue)
+    get_input(win_manager, request_queue)
+    win_manager.render
   end
-  raw_input = handle_lines(raw_input, win_manager, request_queue)
-  get_input(win_manager, request_queue)
-  win_manager.render
+rescue Interrupt
+  # Reset the terminal
+  Curses.close_screen
 end
-
-# Reset the terminal
-Curses.close_screen

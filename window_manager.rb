@@ -93,7 +93,7 @@ class WindowManager
 
     win.attron(Curses.color_pair(1))
 
-    @request_queue.get_lines do |request, selected, first_line, i|
+    @request_queue.get_lines do |selected, first_line, i|
       if selected
         win.attron(Curses.color_pair(2))
       else
@@ -106,7 +106,7 @@ class WindowManager
     end
 
     win.setpos(win.cury + 1, 0)
-    (win.maxy - win.cury - 1).times { win.deleteln }
+    (win.maxy - win.cury - 1).times { $logger.info("Delete line"); win.deleteln }
 
     win.refresh
   end

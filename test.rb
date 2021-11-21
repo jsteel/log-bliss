@@ -79,10 +79,10 @@ def get_input(win_manager, request_queue)
   when 'k'
     request_queue.move_cursor_up
     win_manager.redraw = true
-  # when 'm'
-  #   request_queue.move_trace_cursor_down
-  # when ','
-  #   request_queue.move_trace_cursor_up
+  when 'm'
+    request_queue.move_log_down
+  when ','
+    request_queue.move_log_up
   when 'i'
     request_queue.prevent_scrolling(win_manager.win.maxy)
   when 'u'
@@ -97,6 +97,8 @@ def get_input(win_manager, request_queue)
   when 'c'
     request_queue.reset
     win_manager = true
+  when 'x'
+    request_queue.copy_current_request
   when 'q'
     exit 0
   when 'p'

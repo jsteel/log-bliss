@@ -9,6 +9,8 @@ class WindowManager
 
     $logger.info("Screen #{Curses.lines.to_s}x#{Curses.cols.to_s}")
 
+    @request_queue = request_queue
+
     setup_split_horizontal
 
     Curses.start_color
@@ -21,8 +23,6 @@ class WindowManager
 
     @screen_layout = :split_horizontal
     @redraw = true
-
-    @request_queue = request_queue
   end
 
   def screen_layout=(new_layout)
@@ -67,7 +67,7 @@ class WindowManager
     @win3.refresh
     @win2 = Curses::Window.new(half_lines.ceil, 0, half_lines.floor + 1, 0)
     @win.nodelay = true
-    @request_queue&.reset_scroll_position(@win.maxy)
+    @request_queue.reset_scroll_position(@win.maxy, @win2&.maxy)
   end
 
   def setup_full_request
@@ -75,14 +75,14 @@ class WindowManager
     @win = Curses::Window.new(1, 0, 0, 0)
     @win2 = Curses::Window.new(Curses.lines - 1, 0, 1, 0)
     @win.nodelay = true
-    @request_queue&.reset_scroll_position(@win.maxy)
+    @request_queue.reset_scroll_position(@win.maxy, @win2&.maxy)
   end
 
   def setup_full_index
     # height, width, top, left
     @win = Curses::Window.new(Curses.lines, 0, 0, 0)
     @win.nodelay = true
-    @request_queue&.reset_scroll_position(@win.maxy)
+    @request_queue.reset_scroll_position(@win.maxy, @win2&.maxy)
   end
 
   def redraw
@@ -106,7 +106,7 @@ class WindowManager
     end
 
     win.setpos(win.cury + 1, 0)
-    (win.maxy - win.cury - 1).times { $logger.info("Delete line"); win.deleteln }
+    (win.maxy - win.cury - 1).times { win.deleteln }
 
     win.refresh
   end
@@ -115,9 +115,7 @@ class WindowManager
     return unless @win2
 
     win = @win2
-    lines = @request_queue.current_request_lines(win.maxy)
-    return if !lines
-    lines[0..win.maxy].each_with_index do |line, i|
+    lines = @request_queue.current_request_lines do |line, i|
       win.attron(Curses.color_pair(1))
       win.setpos(i, 0)
       win.addstr(line[0..win.maxx - 1])

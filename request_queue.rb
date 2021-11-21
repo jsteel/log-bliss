@@ -13,6 +13,7 @@ class SlidingWindowList
   attr_reader :requests_current
   attr_reader :requests_first
   attr_reader :requests_last
+  attr_writer :max_size
 
   def initialize
     @requests_first = 0
@@ -54,6 +55,22 @@ class SlidingWindowList
     end
   end
 
+  def slide_down
+    return if @requests_last == @max_size
+
+    @requests_current += 1
+    @requests_last += 1
+    @requests_first += 1
+  end
+
+  def slide_up
+    return if @requests_first == 0
+
+    @requests_current -= 1
+    @requests_last -= 1
+    @requests_first -= 1
+  end
+
   def prevent_scrolling(maxy)
     # Prevent scrolling on the top window
     @requests_scrolling = !@requests_scrolling
@@ -65,9 +82,18 @@ class SlidingWindowList
     end
   end
 
-  def reset_scroll_position(height)
-    @requests_last = [@requests_current + height, @max_size].min
-    @requests_first = [@requests_last - height + 1, 0].max
+  def reset_scroll_position(window_height, max_height, scroll_to_start = false)
+    $logger.info("RESET max #{max_height} window height #{window_height}")
+
+    if scroll_to_start
+      @requests_current = 0
+    else
+      @requests_current = [@requests_current, max_height].min
+    end
+    @max_size = max_height
+    @requests_last = [@requests_current + window_height, @max_size].min
+    @requests_first = [@requests_last - window_height + 1, 0].max
+    $logger.info("RESET to #{@requests_first} #{@requests_current} #{@requests_last} #{@max_size}")
   end
 end
 
@@ -91,10 +117,6 @@ class RequestQueue
     end
 
     if uuid == current_uuid
-      # The sliding windows should have a more elegant way of getting their
-      # height. Best would be to have a setter for their height. Then the window
-      # manager can somehow pass the heights to the sliding windows when they
-      # change. Probably via the request queue grabbing and passing it.
       @log_slide.add_one(log_maxy) if log_maxy
     end
 
@@ -115,30 +137,66 @@ class RequestQueue
     end
   end
 
-  def current_request_lines(maxy)
-    selected_request = @request_queue[current_uuid]
-    lines = @requests[selected_request]
+  def current_request_lines
+    lines = current_request
+    return unless lines
+
+    last = [@log_slide.requests_last - 1, lines.length].min
+
+    (@log_slide.requests_first..last).each_with_index do |line_index, i|
+      line = lines[line_index]
+      next unless line
+      yield(line, i)
+    end
   end
 
   def move_cursor_down
     @request_slide.move_cursor_down
+    reset_log_slide
   end
 
   def move_cursor_up
     @request_slide.move_cursor_up
+    reset_log_slide
   end
 
   def prevent_scrolling(maxy)
     @request_slide.prevent_scrolling(maxy)
   end
 
-  def reset_scroll_position(height)
-    @request_slide.reset_scroll_position(height)
+  def reset_scroll_position(index_height, log_window_height)
+    @index_height = index_height
+    @log_window_height = log_window_height
+    @request_slide.reset_scroll_position(index_height, @request_queue.length)
+    reset_log_slide
+  end
+
+  def reset_log_slide
+    @log_slide.reset_scroll_position(@log_window_height, current_request&.length || 0, true)
+  end
+
+  def move_log_down
+    @log_slide.slide_down
+  end
+
+  def move_log_up
+    @log_slide.slide_up
+  end
+
+  def copy_current_request
+    File.open("/tmp/log_copy", "w") do |file|
+      file.puts current_request.join("\n")
+    end
+    system("cat /tmp/log_copy | pbcopy")
   end
 
   private
 
+  def current_request
+    @requests[current_uuid]
+  end
+
   def current_uuid
-    @request_slide.requests_current
+    @request_queue[@request_slide.requests_current]
   end
 end

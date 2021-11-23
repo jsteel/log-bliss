@@ -22,11 +22,14 @@ class WindowManager
     # List of colors: https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
     Curses.init_pair(1, 15, 0)
     Curses.init_pair(2, 0, 15)
+    Curses.init_pair(3, 15, Curses::COLOR_BLUE)
+    Curses.init_pair(4, 15, Curses::COLOR_RED)
 
     @screen_layout = :split_horizontal
     @redraw = true
 
     @collapsed_columns = Set.new
+    @line_wrap = false
   end
 
   def screen_layout=(new_layout)
@@ -51,6 +54,10 @@ class WindowManager
     else
       @collapsed_columns.add(column_num)
     end
+  end
+
+  def toggle_line_wrap
+    @line_wrap = !@line_wrap
   end
 
   def render
@@ -103,19 +110,9 @@ class WindowManager
     win = @win
     return unless @redraw
 
-    win.attron(Curses.color_pair(1))
-
     @request_queue.get_lines do |selected, first_line, i|
-      first_line = transform_line(first_line)
-
-      if selected
-        win.attron(Curses.color_pair(2))
-      else
-        win.attron(Curses.color_pair(1))
-      end
-
       win.setpos(i, 0)
-      win.addstr(first_line[0..win.maxx - 1])
+      print_line(first_line, win, selected ? Curses.color_pair(2) : Curses.color_pair(1))
       win.clrtoeol()
     end
 
@@ -129,12 +126,13 @@ class WindowManager
     return unless @win2
 
     win = @win2
+    win.setpos(0, 0)
+
     lines = @request_queue.current_request_lines do |line, i|
-      line = transform_line(line)
-      win.attron(Curses.color_pair(1))
-      win.setpos(i, 0)
-      win.addstr(line[0..win.maxx - 1])
+      next if win.cury >= win.maxy
+      print_line(line, win)
       win.clrtoeol()
+      win.setpos(win.cury + 1, 0) unless win.curx == 0
     end
 
     (win.maxy - 2 - win.cury).times { win.deleteln }
@@ -142,10 +140,30 @@ class WindowManager
     win.refresh
   end
 
-  def transform_line(line)
+  def print_line(line, win, default_color = Curses.color_pair(1))
     match = line.match(/\[(\d\d:\d\d:\d\d\.\d\d\d)\] \[(request_uuid:[\w-]+)\](\W+.*)/)
     col1 = match[1] unless @collapsed_columns.include?(1)
     col2 = match[2] unless @collapsed_columns.include?(2)
-    "[#{col1}] [#{col2}]#{match[3]}"
+    line = "[#{col1}] [#{col2}]#{match[3]}"
+
+    line = line[0..win.maxx - 1] unless @line_wrap
+
+    match = line.match(/\[(\d\d:\d\d:\d\d\.\d\d\d)?\] \[(request_uuid:[\w-]+)?\](\W+.*)/)
+    win.attron(default_color)
+    win.addstr("[")
+    unless @collapsed_columns.include?(1)
+      win.attron(Curses.color_pair(3))
+      win.addstr(match[1])
+      win.attron(default_color)
+    end
+    win.addstr("] ")
+
+    win.addstr("[")
+    unless @collapsed_columns.include?(2)
+      win.attron(Curses.color_pair(4))
+      win.addstr(match[2])
+      win.attron(default_color)
+    end
+    win.addstr("]#{match[3]}")
   end
 end

@@ -18,20 +18,15 @@ require './request_queue'
 # Ncurses tutorial: http://jbwyatt.com/ncurses.html#input
 
 # TODO
-# Scroll for request window
-#  Can do this by refactoring the request queue. The current line is always the same as the first line. Then all the logic works the same
+# Last line of log request is not changing
 # Print line at bottom with key legend
-# TODO Ctrl-C signal handler
-# Tail -F doesn't quite work
 
 # LATER
-# Button for line wrapping
 # Handle requests that don't have a uuid
 # Handle stack traces
-# Collapse columns of the input by pressing 1, 2, 3.
-# Colored output
 # Conver the ansi color codes to proper colors
-# We go too far back with tail -n. Have to forward a bit when we overshoot.
+# Tail -F doesn't quite work
+#  We go too far back with tail -n. Have to forward a bit when we overshoot.
 
 go_back_count = nil
 
@@ -103,6 +98,8 @@ def get_input(win_manager, request_queue)
     win_manager.toggle_collapse_column(1)
   when '2'
     win_manager.toggle_collapse_column(2)
+  when 'w'
+    win_manager.toggle_line_wrap
   when 'q'
     exit 0
   when 'p'

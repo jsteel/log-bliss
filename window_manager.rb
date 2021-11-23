@@ -1,3 +1,5 @@
+require 'set'
+
 class WindowManager
   attr_reader :win
   attr_reader :win2
@@ -23,6 +25,8 @@ class WindowManager
 
     @screen_layout = :split_horizontal
     @redraw = true
+
+    @collapsed_columns = Set.new
   end
 
   def screen_layout=(new_layout)
@@ -38,6 +42,14 @@ class WindowManager
       setup_full_index
     else
       raise "Invalid window layout #{new_layout}"
+    end
+  end
+
+  def toggle_collapse_column(column_num)
+    if @collapsed_columns.include?(column_num)
+      @collapsed_columns.delete(column_num)
+    else
+      @collapsed_columns.add(column_num)
     end
   end
 
@@ -94,6 +106,8 @@ class WindowManager
     win.attron(Curses.color_pair(1))
 
     @request_queue.get_lines do |selected, first_line, i|
+      first_line = transform_line(first_line)
+
       if selected
         win.attron(Curses.color_pair(2))
       else
@@ -116,6 +130,7 @@ class WindowManager
 
     win = @win2
     lines = @request_queue.current_request_lines do |line, i|
+      line = transform_line(line)
       win.attron(Curses.color_pair(1))
       win.setpos(i, 0)
       win.addstr(line[0..win.maxx - 1])
@@ -125,5 +140,12 @@ class WindowManager
     (win.maxy - 2 - win.cury).times { win.deleteln }
 
     win.refresh
+  end
+
+  def transform_line(line)
+    match = line.match(/\[(\d\d:\d\d:\d\d\.\d\d\d)\] \[(request_uuid:[\w-]+)\](\W+.*)/)
+    col1 = match[1] unless @collapsed_columns.include?(1)
+    col2 = match[2] unless @collapsed_columns.include?(2)
+    "[#{col1}] [#{col2}]#{match[3]}"
   end
 end

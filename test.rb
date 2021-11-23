@@ -99,6 +99,10 @@ def get_input(win_manager, request_queue)
     win_manager = true
   when 'x'
     request_queue.copy_current_request
+  when '1'
+    win_manager.toggle_collapse_column(1)
+  when '2'
+    win_manager.toggle_collapse_column(2)
   when 'q'
     exit 0
   when 'p'
@@ -127,10 +131,10 @@ def handle_line(line, win_manager, request_queue)
 
   return if line.empty?
 
-  match = line.match(/(\[\d\d:\d\d:\d\d\.\d\d\d\]) (\[request_uuid:[\w-]+\])\W+(.*)/)
+  match = line.match(/\[\d\d:\d\d:\d\d\.\d\d\d\] (\[request_uuid:[\w-]+\])\W+.*/)
 
   if match
-    uuid = match[2]
+    uuid = match[1]
     request_queue.add_request(uuid, line, win_manager.win.maxy, win_manager.win2&.maxy)
     win_manager.redraw = true
   end

@@ -24,6 +24,9 @@ class WindowManager
     Curses.init_pair(2, 0, 15)
     Curses.init_pair(3, Curses::COLOR_BLUE, 0)
     Curses.init_pair(4, Curses::COLOR_RED, 0)
+    Curses.init_pair(5, Curses::COLOR_CYAN, 0)
+    Curses.init_pair(6, Curses::COLOR_MAGENTA, 0)
+    Curses.init_pair(7, Curses::COLOR_GREEN, 0)
 
     @screen_layout = :split_horizontal
     @redraw = true
@@ -164,6 +167,27 @@ class WindowManager
       win.addstr(match[2])
       win.attron(default_color)
     end
-    win.addstr("]#{match[3]}")
+    print_with_color("]#{match[3]}", win)
+  end
+
+  def print_with_color(line, win)
+    while line != ""
+      line_part, sep, line = line.partition(/\e\[\dm(\e\[\d\d?m)?/)
+      win.attron(ansii_to_curses_pair(sep)) unless sep.empty?
+      win.addstr(line_part)
+    end
+  end
+
+  def ansii_to_curses_pair(ansii_code)
+    case ansii_code
+    when '[1m[35m'
+      Curses.color_pair(6)
+    when '[1m[36m'
+      Curses.color_pair(5)
+    when '[1m[34m'
+      Curses.color_pair(7)
+    else
+      Curses.color_pair(0)
+    end
   end
 end

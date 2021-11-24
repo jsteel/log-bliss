@@ -83,8 +83,6 @@ class SlidingWindowList
   end
 
   def reset_scroll_position(window_height, max_height, scroll_to_start = false)
-    $logger.info("RESET max #{max_height} window height #{window_height}")
-
     if scroll_to_start
       @requests_current = 0
     else
@@ -93,7 +91,6 @@ class SlidingWindowList
     @max_size = max_height
     @requests_last = [@requests_current + window_height, @max_size].min
     @requests_first = [@requests_last - window_height + 1, 0].max
-    $logger.info("RESET to #{@requests_first} #{@requests_current} #{@requests_last} #{@max_size}")
   end
 end
 

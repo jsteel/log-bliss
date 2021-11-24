@@ -168,10 +168,11 @@ class RequestQueue
     @index_height = index_height
     @log_window_height = log_window_height
     @request_slide.reset_scroll_position(index_height, @request_queue.length)
-    reset_log_slide
   end
 
   def reset_log_slide
+    return unless @log_window_height
+
     @log_slide.reset_scroll_position(@log_window_height, current_request&.length || 0, true)
   end
 

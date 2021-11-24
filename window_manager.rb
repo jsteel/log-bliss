@@ -22,8 +22,8 @@ class WindowManager
     # List of colors: https://en.wikipedia.org/wiki/ANSI_escape_code#Colors
     Curses.init_pair(1, 15, 0)
     Curses.init_pair(2, 0, 15)
-    Curses.init_pair(3, 15, Curses::COLOR_BLUE)
-    Curses.init_pair(4, 15, Curses::COLOR_RED)
+    Curses.init_pair(3, Curses::COLOR_BLUE, 0)
+    Curses.init_pair(4, Curses::COLOR_RED, 0)
 
     @screen_layout = :split_horizontal
     @redraw = true

@@ -18,13 +18,12 @@ require './request_queue'
 # Ncurses tutorial: http://jbwyatt.com/ncurses.html#input
 
 # TODO
+# Line is wrapping sometimes between the boundaries of two colors
 # Last line of log request is not changing
-# Print line at bottom with key legend
 
 # LATER
 # Handle requests that don't have a uuid
 # Handle stack traces
-# Conver the ansi color codes to proper colors
 # Tail -F doesn't quite work
 #  We go too far back with tail -n. Have to forward a bit when we overshoot.
 
@@ -83,6 +82,8 @@ def get_input(win_manager, request_queue)
   when 'u'
     # Split windows
     if win_manager.screen_layout == :split_horizontal
+      win_manager.screen_layout = :split_vertical
+    elsif win_manager.screen_layout == :split_vertical
       win_manager.screen_layout = :full_request
     elsif win_manager.screen_layout == :full_request
       win_manager.screen_layout = :full_index
@@ -100,6 +101,10 @@ def get_input(win_manager, request_queue)
     win_manager.toggle_collapse_column(2)
   when 'w'
     win_manager.toggle_line_wrap
+  when 'a'
+    win_manager.grow_index_window_size(-1)
+  when 's'
+    win_manager.grow_index_window_size(1)
   when 'q'
     exit 0
   when 'p'
@@ -108,8 +113,6 @@ def get_input(win_manager, request_queue)
 end
 
 def handle_lines(raw_input, win_manager, request_queue)
-  raw_input.gsub!(/\e\[\d+m/, '')
-
   while true
     line, sep, raw_input = raw_input.partition("\n")
 
@@ -124,7 +127,7 @@ end
 
 def handle_line(line, win_manager, request_queue)
   # Remove ansi shell colors
-  line.gsub!(/\e\[\d+m/, '')
+  # line.gsub!(/\e\[\d+m/, '')
 
   return if line.empty?
 

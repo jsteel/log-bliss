@@ -37,11 +37,13 @@ class WindowManager
 
   def screen_layout=(new_layout)
     @screen_layout = new_layout
-
+$logger.info('new screen layout')
     close_windows
 
     if new_layout == :split_horizontal
       setup_split_horizontal
+    elsif new_layout == :split_vertical
+      setup_split_vertical
     elsif new_layout == :full_request
       setup_full_request
     elsif new_layout == :full_index
@@ -69,6 +71,16 @@ class WindowManager
     @redraw = false
   end
 
+  def grow_index_window_size(grow_amount)
+    if @screen_layout == :split_horizontal
+      @horizontal_index_window_size = (@horizontal_index_window_size + grow_amount).clamp(1, Curses.lines - 2)
+    elsif @screen_layout == :split_vertical
+      @vertical_index_window_size = (@vertical_index_window_size + grow_amount).clamp(50, Curses.cols - 5)
+    end
+
+    self.screen_layout = @screen_layout
+  end
+
   private
 
   def close_windows
@@ -81,13 +93,32 @@ class WindowManager
   end
 
   def setup_split_horizontal
-    half_lines = Curses.lines / 2
+    half_lines = Curses.lines.to_f / 2
+
+    @horizontal_index_window_size ||= half_lines.ceil
+    @horizontal_index_window_size = [@horizontal_index_window_size, Curses.lines - 1].min
+
     # height, width, top, left
-    @win = Curses::Window.new(half_lines.floor, 0, 0, 0)
-    @win3 = Curses::Window.new(1, 0, half_lines.floor, 0)
+    @win = Curses::Window.new(@horizontal_index_window_size, 0, 0, 0)
+    @win3 = Curses::Window.new(1, 0, @horizontal_index_window_size, 0)
     @win3.addstr("━" * @win3.maxx)
     @win3.refresh
-    @win2 = Curses::Window.new(half_lines.ceil, 0, half_lines.floor + 1, 0)
+    @win2 = Curses::Window.new(Curses.lines - @horizontal_index_window_size - 1, 0, @horizontal_index_window_size + 1, 0)
+    @win.nodelay = true
+    @request_queue.reset_scroll_position(@win.maxy, @win2&.maxy)
+  end
+
+  def setup_split_vertical
+    half_width = Curses.cols.to_f / 2
+
+    @vertical_index_window_size ||= half_width.ceil
+    @vertical_index_window_size = [@vertical_index_window_size, Curses.cols - 5].min
+
+    # height, width, top, left
+    @win = Curses::Window.new(0, @vertical_index_window_size, 0, 0)
+    @win3 = Curses::Window.new(0, 1, 0, @vertical_index_window_size)
+    @win3.refresh
+    @win2 = Curses::Window.new(0, Curses.cols - @vertical_index_window_size - 1, 0, @vertical_index_window_size + 1)
     @win.nodelay = true
     @request_queue.reset_scroll_position(@win.maxy, @win2&.maxy)
   end
@@ -149,8 +180,6 @@ class WindowManager
     col2 = match[2] unless @collapsed_columns.include?(2)
     line = "[#{col1}] [#{col2}]#{match[3]}"
 
-    line = line[0..win.maxx - 1] unless @line_wrap
-
     match = line.match(/\[(\d\d:\d\d:\d\d\.\d\d\d)?\] \[(request_uuid:[\w-]+)?\](\W+.*)/)
     win.attron(default_color)
     win.addstr("[")
@@ -171,10 +200,14 @@ class WindowManager
   end
 
   def print_with_color(line, win)
+    line = line[0..win.maxx - 1] unless @line_wrap
+
     while line != ""
       line_part, sep, line = line.partition(/\e\[\dm(\e\[\d\d?m)?/)
-      win.attron(ansii_to_curses_pair(sep)) unless sep.empty?
+      line_part = line_part[0...win.maxx - win.curx] unless @line_wrap
       win.addstr(line_part)
+      win.attron(ansii_to_curses_pair(sep)) unless sep.empty?
+      return if win.curx >= win.maxx
     end
   end
 

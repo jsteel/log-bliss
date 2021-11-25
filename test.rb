@@ -19,7 +19,6 @@ require './request_queue'
 
 # TODO
 # Line is wrapping sometimes between the boundaries of two colors
-# Last line of log request is not changing
 
 # LATER
 # Handle requests that don't have a uuid

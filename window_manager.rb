@@ -37,7 +37,7 @@ class WindowManager
 
   def screen_layout=(new_layout)
     @screen_layout = new_layout
-$logger.info('new screen layout')
+
     close_windows
 
     if new_layout == :split_horizontal
@@ -169,7 +169,7 @@ $logger.info('new screen layout')
       win.setpos(win.cury + 1, 0) unless win.curx == 0
     end
 
-    (win.maxy - 2 - win.cury).times { win.deleteln }
+    (win.maxy - win.cury - 1).times { win.deleteln }
 
     win.refresh
   end

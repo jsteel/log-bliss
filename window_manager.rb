@@ -207,7 +207,7 @@ class WindowManager
       line_part = line_part[0...win.maxx - win.curx] unless @line_wrap
       win.addstr(line_part)
       win.attron(ansii_to_curses_pair(sep)) unless sep.empty?
-      return if win.curx >= win.maxx
+      return if win.curx >= win.maxx || win.curx == 0
     end
   end
 

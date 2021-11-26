@@ -18,13 +18,8 @@ require './request_queue'
 # Ncurses tutorial: http://jbwyatt.com/ncurses.html#input
 
 # TODO
-# Line is wrapping sometimes between the boundaries of two colors
-
-# LATER
-# Handle requests that don't have a uuid
-# Handle stack traces
-# Tail -F doesn't quite work
-#  We go too far back with tail -n. Have to forward a bit when we overshoot.
+# If you press up/down when on a request at the end, it shoots back to the top (or the other way around)
+# Handle lines that don't have a uuid and stack traces
 
 go_back_count = nil
 
@@ -58,7 +53,14 @@ if go_back_count
     @input.seek(-buf_size, File::SEEK_CUR)
     buffer = @input.read(buf_size)
     go_back_count -= buffer.count("\n")
-    @input.seek(-buf_size, File::SEEK_CUR)
+
+    # Go back to the same spot again after reading
+    @input.seek(-buf_size, File::SEEK_CUR) if go_back_count > 0
+
+    while go_back_count < 0
+      _, _, buffer = buffer.partition("\n")
+      go_back_count += 1
+    end
   end
 end
 
@@ -141,6 +143,8 @@ end
 
 request_queue = RequestQueue.new
 win_manager = WindowManager.new(request_queue)
+
+handle_lines(buffer, win_manager, request_queue) if buffer
 
 raw_input = ""
 

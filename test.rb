@@ -6,6 +6,7 @@ require 'pry-remote'
 
 require './window_manager'
 require './request_queue'
+require './tail'
 
 # [20:44:47.238] [request_uuid:rake-e857b461] Rails schema is uncached. Reading from the database now data_sources/8c9fbaa08ae19d9ee9f298b7af242f11314ca04c}
 # Helpful tutorial: https://www.2n.pl/blog/basics-of-curses-library-in-ruby-make-awesome-terminal-apps
@@ -37,36 +38,16 @@ require 'logger'
 $logger = Logger.new("/tmp/log")
 
 if ARGV[-1]
-  @input = File.open(ARGV[-1], "r")
+  @input = FileTail.new(ARGV[-1])
+  buffer = @input.get_previous(go_back_count) if go_back_count
 else
-  @input = $stdin.clone
-  fd = IO.sysopen('/dev/tty', 'r')
-  $stdin.reopen(IO.new(fd))
-end
-
-if go_back_count
-  stats = @input.stat
-  buf_size = stats.blksize
-  @input.seek(0, File::SEEK_END)
-
-  while go_back_count > 0
-    @input.seek(-buf_size, File::SEEK_CUR)
-    buffer = @input.read(buf_size)
-    go_back_count -= buffer.count("\n")
-
-    # Go back to the same spot again after reading
-    @input.seek(-buf_size, File::SEEK_CUR) if go_back_count > 0
-
-    while go_back_count < 0
-      _, _, buffer = buffer.partition("\n")
-      go_back_count += 1
-    end
-  end
+  @input = PipeTail.new
 end
 
 def get_input(win_manager, request_queue)
   str = win_manager.win.getstr.to_s.chomp
   $logger.info("INPUT: #{str}") unless str.empty?
+
   case str
   when 'j'
     request_queue.move_cursor_down
@@ -150,11 +131,7 @@ raw_input = ""
 
 begin
   while true
-    begin
-      raw_input += @input.read_nonblock(100)
-    rescue IO::EAGAINWaitReadable, EOFError
-      # No input to read yet
-    end
+    raw_input += @input.get_more
     raw_input = handle_lines(raw_input, win_manager, request_queue)
     get_input(win_manager, request_queue)
     win_manager.render

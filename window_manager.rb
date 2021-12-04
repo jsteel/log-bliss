@@ -175,32 +175,35 @@ class WindowManager
   end
 
   def print_line(line, win, default_color = Curses.color_pair(1))
-    match = line.match(/\[(\d\d:\d\d:\d\d\.\d\d\d)\] \[(request_uuid:[\w-]+)\](\W+.*)/)
-    col1 = match[1] unless @collapsed_columns.include?(1)
-    col2 = match[2] unless @collapsed_columns.include?(2)
-    line = "[#{col1}] [#{col2}]#{match[3]}"
+    match = line.match(/\[(\d\d:\d\d:\d\d\.\d\d\d)?\] \[(request_uuid:[\w-]+)?\](\W+.*)/m)
 
-    match = line.match(/\[(\d\d:\d\d:\d\d\.\d\d\d)?\] \[(request_uuid:[\w-]+)?\](\W+.*)/)
-    win.attron(default_color)
-    win.addstr("[")
-    unless @collapsed_columns.include?(1)
-      win.attron(Curses.color_pair(3))
-      win.addstr(match[1])
+    if match
       win.attron(default_color)
-    end
-    win.addstr("] ")
+      win.addstr("[")
+      unless @collapsed_columns.include?(1)
+        win.attron(Curses.color_pair(3))
+        win.addstr(match[1])
+        win.attron(default_color)
+      end
+      win.addstr("] ")
 
-    win.addstr("[")
-    unless @collapsed_columns.include?(2)
-      win.attron(Curses.color_pair(4))
-      win.addstr(match[2])
-      win.attron(default_color)
+      win.addstr("[")
+      unless @collapsed_columns.include?(2)
+        win.attron(Curses.color_pair(4))
+        win.addstr(match[2])
+        win.attron(default_color)
+      end
+      print_with_color("]#{match[3]}", win)
+    else
+      print_with_color(line, win)
     end
-    print_with_color("]#{match[3]}", win)
   end
 
   def print_with_color(line, win)
-    line = line[0..win.maxx - 1] unless @line_wrap
+    unless @line_wrap
+      line = line.split("\n").join(" \\n")
+      line = line[0..win.maxx - 1]
+    end
 
     while line != ""
       line_part, sep, line = line.partition(/\e\[\dm(\e\[\d\d?m)?/)

@@ -20,7 +20,6 @@ require './tail'
 
 # TODO
 # If you press up/down when on a request at the end, it shoots back to the top (or the other way around)
-# Handle lines that don't have a uuid and stack traces
 
 go_back_count = nil
 
@@ -108,16 +107,15 @@ def handle_lines(raw_input, win_manager, request_queue)
 end
 
 def handle_line(line, win_manager, request_queue)
-  # Remove ansi shell colors
-  # line.gsub!(/\e\[\d+m/, '')
-
-  return if line.empty?
-
-  match = line.match(/\[\d\d:\d\d:\d\d\.\d\d\d\] (\[request_uuid:[\w-]+\])\W+.*/)
+  match = line.match(/\[\d\d:\d\d:\d\d\.\d\d\d\] (\[request_uuid:[\w-]+\])\W*.*/)
 
   if match
     uuid = match[1]
+    @previous_uuid = uuid
     request_queue.add_request(uuid, line, win_manager.win.maxy, win_manager.win2&.maxy)
+    win_manager.redraw = true
+  elsif @previous_uuid
+    request_queue.append_line(@previous_uuid, line, win_manager.win.maxy, win_manager.win2&.maxy)
     win_manager.redraw = true
   end
 end

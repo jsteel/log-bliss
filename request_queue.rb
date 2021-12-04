@@ -26,6 +26,10 @@ class RequestQueue
     @requests[uuid] << line
   end
 
+  def append_line(uuid, line, maxy, log_maxy)
+    @requests[uuid][-1] += "\n#{line}"
+  end
+
   def get_lines
     last = [@request_slide.requests_last - 1, @request_queue.length].min
 

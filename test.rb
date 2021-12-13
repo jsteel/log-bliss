@@ -19,7 +19,10 @@ require './tail'
 # Ncurses tutorial: http://jbwyatt.com/ncurses.html#input
 
 # TODO
-# If you press up/down when on a request at the end, it shoots back to the top (or the other way around)
+# True scrolling when line wrap is on
+
+# BUGS
+# When switching screens a bunch of times, got to a point where the index screen was black unless you scrolled after each mode change
 
 go_back_count = nil
 

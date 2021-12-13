@@ -89,7 +89,7 @@ class SlidingWindowList
       @requests_current = [@requests_current, max_height].min
     end
     @max_size = max_height
-    @requests_last = [@requests_current + window_height, @max_size].min
-    @requests_first = [@requests_last - window_height + 1, 0].max
+    @requests_last = [@requests_current + window_height - 1, @max_size].min
+    @requests_first = [@requests_last - window_height, 0].max
   end
 end

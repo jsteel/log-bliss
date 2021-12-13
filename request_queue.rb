@@ -48,7 +48,7 @@ class RequestQueue
     lines = current_request
     return unless lines
 
-    last = [@log_slide.requests_last - 1, lines.length].min
+    last = [@log_slide.requests_last, lines.length].min
 
     (@log_slide.requests_first..last).each_with_index do |line_index, i|
       line = lines[line_index]

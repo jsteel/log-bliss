@@ -30,9 +30,9 @@ class WindowManager
 
     @screen_layout = :split_horizontal
     @redraw = true
+    @line_wrap = false
 
     @collapsed_columns = Set.new
-    @line_wrap = false
   end
 
   def screen_layout=(new_layout)
@@ -63,10 +63,11 @@ class WindowManager
 
   def toggle_line_wrap
     @line_wrap = !@line_wrap
+    @request_queue.toggle_line_wrap(@line_wrap)
   end
 
   def render
-    redraw
+    redraw_index
     draw_request
     @redraw = false
   end
@@ -138,7 +139,7 @@ class WindowManager
     @request_queue.reset_scroll_position(@win.maxy, @win2&.maxy)
   end
 
-  def redraw
+  def redraw_index
     return unless @win
 
     win = @win
@@ -162,7 +163,7 @@ class WindowManager
     win = @win2
     win.setpos(0, 0)
 
-    lines = @request_queue.current_request_lines do |line, i|
+    @request_queue.current_request_lines(@line_wrap, win.maxx) do |line, i|
       next if win.cury >= win.maxy
       print_line(line, win)
       win.clrtoeol()
@@ -175,43 +176,28 @@ class WindowManager
   end
 
   def print_line(line, win, default_color = Curses.color_pair(1))
-    match = line.match(/\[(\d\d:\d\d:\d\d\.\d\d\d)?\] \[(request_uuid:[\w-]+)?\](\W+.*)/m)
-
-    if match
-      win.attron(default_color)
-      win.addstr("[")
-      unless @collapsed_columns.include?(1)
-        win.attron(Curses.color_pair(3))
-        win.addstr(match[1])
-        win.attron(default_color)
-      end
-      win.addstr("] ")
-
-      win.addstr("[")
-      unless @collapsed_columns.include?(2)
-        win.attron(Curses.color_pair(4))
-        win.addstr(match[2])
-        win.attron(default_color)
-      end
-      print_with_color("]#{match[3]}", win)
-    else
-      print_with_color(line, win)
-    end
+    win.attron(default_color)
+    print_with_color(line, win)
   end
 
   def print_with_color(line, win)
-    unless @line_wrap
-      line = line.split("\n").join(" \\n")
-      line = line[0..win.maxx - 1]
+    line.each do |token|
+      if token[0] == :timestamp
+        print_up_to_max(token[1], win)
+      elsif token[0] == :request_uuid
+        print_up_to_max(token[1], win)
+      elsif token[0] == :content
+        print_up_to_max(token[1], win)
+       elsif token[0] == :color
+        win.attron(ansii_to_curses_pair(token[1]))
+      end
     end
+  end
 
-    while line != ""
-      line_part, sep, line = line.partition(/\e\[\dm(\e\[\d\d?m)?/)
-      line_part = line_part[0...win.maxx - win.curx] unless @line_wrap
-      win.addstr(line_part)
-      win.attron(ansii_to_curses_pair(sep)) unless sep.empty?
-      return if win.curx >= win.maxx || win.curx == 0
-    end
+  def print_up_to_max(line, win)
+    space_remaining = win.maxx - win.curx - 1
+    fragment = line[0..space_remaining]
+    win.addstr(fragment)
   end
 
   def ansii_to_curses_pair(ansii_code)

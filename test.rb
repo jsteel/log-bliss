@@ -19,10 +19,9 @@ require './tail'
 # Ncurses tutorial: http://jbwyatt.com/ncurses.html#input
 
 # TODO
-# True scrolling when line wrap is on
-
-# BUGS
-# When switching screens a bunch of times, got to a point where the index screen was black unless you scrolled after each mode change
+# Word wraping working. Now fix the toggle between the two modes. In toggle_line_wrap
+# call down to reuqest queue, rebuild the log_slide, and figure out how to
+# position the current element.
 
 go_back_count = nil
 
@@ -62,7 +61,7 @@ def get_input(win_manager, request_queue)
   when ','
     request_queue.move_log_up
   when 'i'
-    request_queue.prevent_scrolling(win_manager.win.maxy)
+    request_queue.toggle_scrolling(win_manager.win.maxy)
   when 'u'
     # Split windows
     if win_manager.screen_layout == :split_horizontal

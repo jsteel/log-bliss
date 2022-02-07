@@ -1,4 +1,5 @@
-require './sliding_window_list'
+require "./sliding_window_list"
+require "./request_lexer"
 
 class RequestQueue
   def initialize
@@ -23,14 +24,17 @@ class RequestQueue
       @log_slide.add_one(log_maxy) if log_maxy
     end
 
-    @requests[uuid] << line
+    @requests[uuid] << RequestLexer.new(line).tokens
   end
 
+  # TODO Handle this with tokenization properly. Give it a different name.
+  # For appending lines that don't start with a date like stacktraces.
   def append_line(uuid, line, maxy, log_maxy)
-    @requests[uuid][-1] += "\n#{line}"
+    # @requests[uuid][-1] += "\n#{line}"
   end
 
   def get_lines
+    $logger.info("#{@request_slide.inspect}")
     last = [@request_slide.requests_last - 1, @request_queue.length].min
 
     (@request_slide.requests_first..last).each_with_index do |line_index, i|
@@ -44,9 +48,14 @@ class RequestQueue
     end
   end
 
-  def current_request_lines
+  def current_request_lines(line_wrap, maxx)
     lines = current_request
     return unless lines
+
+    if line_wrap
+      tree = RequestTree.new(lines, maxx)
+      lines = tree.lines
+    end
 
     last = [@log_slide.requests_last, lines.length].min
 
@@ -67,7 +76,8 @@ class RequestQueue
     reset_log_slide
   end
 
-  def prevent_scrolling(maxy)
+  # TODO Rename as toggle_scrolling
+  def toggle_scrolling(maxy)
     @request_slide.prevent_scrolling(maxy)
   end
 
@@ -75,6 +85,10 @@ class RequestQueue
     @index_height = index_height
     @log_window_height = log_window_height
     @request_slide.reset_scroll_position(index_height, @request_queue.length)
+  end
+
+  def toggle_line_wrap(line_wrap)
+     new_log_slide = SlidingWindowList.new
   end
 
   def reset_log_slide

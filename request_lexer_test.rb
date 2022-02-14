@@ -22,7 +22,7 @@ end
 
 class RequestTreeTest < Test::Unit::TestCase
   def test_run
-    data = [[[:content, "123456789"]]]
+    data = ["123456789"]
     tree = RequestTree.new(data, 5)
 
     assert_equal tree.lines, [[[:content, "12345", 5, 0]], [[:content, "6789", 4, 0]]]
@@ -33,11 +33,21 @@ class RequestTreeTest < Test::Unit::TestCase
     tree.new_width(6)
     assert_equal tree.lines, [[[:content, "1234", 4, 0], [:content, "5", 1, 0], [:content, "6", 1, 0]], [[:content, "78", 2, 0], [:content, "9", 1, 0]]]
 
-    data = [[[:content, "123456789"]], [[:content, "abcd"], [:content, "efg"]]]
+    data = ["123456789", "abcdefg"]
     tree = RequestTree.new(data, 8)
-    assert_equal tree.lines, [[[:content, "12345678", 8, 0]], [[:content, "9", 1, 0]], [[:content, "abcd", 4, 1], [:content, "efg", 3, 1]]]
+    assert_equal tree.lines, [[[:content, "12345678", 8, 0]], [[:content, "9", 1, 0]], [[:content, "abcdefg", 7, 1]]]
+  end
 
-    tokens = RequestLexer.new('[02:35:40.369] [request_uuid:0] Creating scope :open1. Overwriting existing method AhaGlobal::AdminOpportunity.open. lsj lsjdfk slkskjfsdfslfsdk slsdksdks aaa bbb ccc ddd eee fff ggg hhh iii jjj kkk').tokens
-    pp RequestTree.new([tokens], 167).lines
+  def test_empty_tree
+    tree = RequestTree.new([])
+    tree.add_line("12345678")
+    assert_equal tree.lines, [[[:content, "12345678", 8, 0]]]
+  end
+
+  def test_add_line
+    data = ["123456789"]
+    tree = RequestTree.new(data, 5)
+    tree.add_line("abcdefg")
+    assert_equal tree.lines, [[[:content, "12345", 5, 0]], [[:content, "6789", 4, 0]], [[:content, "abcde", 5, 1]], [[:content, "fg", 2, 1]]]
   end
 end

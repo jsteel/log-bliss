@@ -1,12 +1,12 @@
 #!/usr/bin/env ruby
 
-require 'optparse'
-require 'curses'
-require 'pry-remote'
+require "optparse"
+require "curses"
+require "pry-remote"
 
-require './window_manager'
-require './request_queue'
-require './tail'
+require "./window_manager"
+require "./request_queue_manager"
+require "./tail"
 
 # [20:44:47.238] [request_uuid:rake-e857b461] Rails schema is uncached. Reading from the database now data_sources/8c9fbaa08ae19d9ee9f298b7af242f11314ca04c}
 # Helpful tutorial: https://www.2n.pl/blog/basics-of-curses-library-in-ruby-make-awesome-terminal-apps
@@ -45,49 +45,48 @@ else
   @input = PipeTail.new
 end
 
-def get_input(win_manager, request_queue)
+def get_input(win_manager, request_queue_manager)
   str = win_manager.win.getstr.to_s.chomp
   $logger.info("INPUT: #{str}") unless str.empty?
 
   case str
   when 'j'
-    request_queue.move_cursor_down
-    win_manager.redraw = true
+    request_queue_manager.move_cursor_down
   when 'k'
-    request_queue.move_cursor_up
-    win_manager.redraw = true
+    request_queue_manager.move_cursor_up
   when 'm'
-    request_queue.move_log_down
+    # request_queue_manager.move_log_down
   when ','
-    request_queue.move_log_up
+    # request_queue_manager.move_log_up
   when 'i'
-    request_queue.toggle_scrolling(win_manager.win.maxy)
+    request_queue_manager.toggle_scrolling
   when 'u'
     # Split windows
-    if win_manager.screen_layout == :split_horizontal
-      win_manager.screen_layout = :split_vertical
-    elsif win_manager.screen_layout == :split_vertical
-      win_manager.screen_layout = :full_request
-    elsif win_manager.screen_layout == :full_request
-      win_manager.screen_layout = :full_index
-    else
-      win_manager.screen_layout = :split_horizontal
-    end
+    # if win_manager.screen_layout == :split_horizontal
+    #   win_manager.screen_layout = :split_vertical
+    # elsif win_manager.screen_layout == :split_vertical
+    #   win_manager.screen_layout = :full_request
+    # elsif win_manager.screen_layout == :full_request
+    #   win_manager.screen_layout = :full_index
+    # else
+    #   win_manager.screen_layout = :split_horizontal
+    # end
   when 'c'
-    request_queue.reset
-    win_manager = true
+    # request_queue_manager.reset
   when 'x'
-    request_queue.copy_current_request
+    request_queue_manager.copy_current_request
   when '1'
-    win_manager.toggle_collapse_column(1)
+    # win_manager.toggle_collapse_column(1)
   when '2'
-    win_manager.toggle_collapse_column(2)
+    # win_manager.toggle_collapse_column(2)
   when 'w'
-    win_manager.toggle_line_wrap
+    # win_manager.toggle_line_wrap
   when 'a'
     win_manager.grow_index_window_size(-1)
+    request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx)
   when 's'
     win_manager.grow_index_window_size(1)
+    request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx)
   when 'q'
     exit 0
   when 'p'
@@ -95,45 +94,32 @@ def get_input(win_manager, request_queue)
   end
 end
 
-def handle_lines(raw_input, win_manager, request_queue)
+def handle_lines(raw_input, win_manager, request_queue_manager)
   while true
     line, sep, raw_input = raw_input.partition("\n")
 
     # If no match, then line contains the rest
     return line if raw_input.empty? && sep.empty?
 
-    handle_line(line, win_manager, request_queue)
+    request_queue_manager.add_line(line)
 
     return line if raw_input.empty?
   end
 end
 
-def handle_line(line, win_manager, request_queue)
-  match = line.match(/\[\d\d:\d\d:\d\d\.\d\d\d\] (\[request_uuid:[\w-]+\])\W*.*/)
+request_queue_manager = RequestQueueManager.new
+win_manager = WindowManager.new(request_queue_manager)
+request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx)
 
-  if match
-    uuid = match[1]
-    @previous_uuid = uuid
-    request_queue.add_request(uuid, line, win_manager.win.maxy, win_manager.win2&.maxy)
-    win_manager.redraw = true
-  elsif @previous_uuid
-    request_queue.append_line(@previous_uuid, line, win_manager.win.maxy, win_manager.win2&.maxy)
-    win_manager.redraw = true
-  end
-end
-
-request_queue = RequestQueue.new
-win_manager = WindowManager.new(request_queue)
-
-handle_lines(buffer, win_manager, request_queue) if buffer
+handle_lines(buffer, win_manager, request_queue_manager) if buffer
 
 raw_input = ""
 
 begin
   while true
     raw_input += @input.get_more
-    raw_input = handle_lines(raw_input, win_manager, request_queue)
-    get_input(win_manager, request_queue)
+    raw_input = handle_lines(raw_input, win_manager, request_queue_manager)
+    get_input(win_manager, request_queue_manager)
     win_manager.render
   end
 rescue Interrupt

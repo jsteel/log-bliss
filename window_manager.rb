@@ -29,7 +29,6 @@ class WindowManager
     Curses.init_pair(7, Curses::COLOR_GREEN, 0)
 
     @screen_layout = :split_horizontal
-    @redraw = true
     @line_wrap = false
 
     @collapsed_columns = Set.new
@@ -69,7 +68,6 @@ class WindowManager
   def render
     redraw_index
     draw_request
-    @redraw = false
   end
 
   def grow_index_window_size(grow_amount)
@@ -143,11 +141,10 @@ class WindowManager
     return unless @win
 
     win = @win
-    return unless @redraw
 
-    @request_queue.get_lines do |selected, first_line, i|
+    @request_queue.get_lines(win.maxy) do |selected, line, i|
       win.setpos(i, 0)
-      print_line(first_line, win, selected ? Curses.color_pair(2) : Curses.color_pair(1))
+      print_line(line, win, selected ? Curses.color_pair(2) : Curses.color_pair(1))
       win.clrtoeol()
     end
 

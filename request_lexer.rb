@@ -38,8 +38,8 @@ end
 class RequestTree
   attr_reader :lines
 
-  def initialize(lines, width)
-    @lines = lines
+  def initialize(lines, width = 9999)
+    @lines = lines.collect { |line| RequestLexer.new(line).tokens }
     @width = width
 
     @lines.each_with_index do |line, i|
@@ -49,7 +49,27 @@ class RequestTree
     end
 
     tokens_from_lines
-    add_token_lengths_and_line
+    add_token_lengths(@tokens)
+    fit_width
+    p "lines #{@lines}"
+  end
+
+  def add_line(raw_line)
+    line = RequestLexer.new(raw_line).tokens
+    last_line = @lines[-1]
+    if last_line
+      last_token = last_line[-1]
+      last_line_num = last_token[3] + 1
+    else
+      last_line_num = 0
+    end
+    line.each do |token|
+      token[2] = token[1].length
+      token[3] = last_line_num
+    end
+    add_token_lengths(line)
+    lines << line
+    tokens_from_lines
     fit_width
   end
 
@@ -61,9 +81,9 @@ class RequestTree
 
   private
 
-  def add_token_lengths_and_line
+  def add_token_lengths(tokens)
     # Add the length to each token
-    @tokens.each do |token|
+    tokens.each do |token|
       token[2] =
         case token[0]
         when :content, :timestamp, :request_uuid
@@ -84,6 +104,9 @@ class RequestTree
 
   def fit_width
     @lines = []
+
+    return if @tokens.empty?
+
     cur_line_spare_room = @width
     cur_line = []
     cur_line_index = 0

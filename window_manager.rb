@@ -29,7 +29,6 @@ class WindowManager
     Curses.init_pair(7, Curses::COLOR_GREEN, 0)
 
     @screen_layout = :split_horizontal
-    @line_wrap = false
 
     @collapsed_columns = Set.new
   end
@@ -58,11 +57,6 @@ class WindowManager
     else
       @collapsed_columns.add(column_num)
     end
-  end
-
-  def toggle_line_wrap
-    @line_wrap = !@line_wrap
-    @request_queue.toggle_line_wrap(@line_wrap)
   end
 
   def render
@@ -142,7 +136,8 @@ class WindowManager
 
     win = @win
 
-    @request_queue.get_lines(win.maxy) do |selected, line, i|
+    @request_queue.get_lines do |selected, line, i|
+      $logger.info("line #{line}")
       win.setpos(i, 0)
       print_line(line, win, selected ? Curses.color_pair(2) : Curses.color_pair(1))
       win.clrtoeol()
@@ -155,21 +150,21 @@ class WindowManager
   end
 
   def draw_request
-    return unless @win2
+    # return unless @win2
 
-    win = @win2
-    win.setpos(0, 0)
+    # win = @win2
+    # win.setpos(0, 0)
 
-    @request_queue.current_request_lines(@line_wrap, win.maxx) do |line, i|
-      next if win.cury >= win.maxy
-      print_line(line, win)
-      win.clrtoeol()
-      win.setpos(win.cury + 1, 0) unless win.curx == 0
-    end
+    # @request_queue.current_request_lines(@line_wrap, win.maxx) do |line, i|
+    #   next if win.cury >= win.maxy
+    #   print_line(line, win)
+    #   win.clrtoeol()
+    #   win.setpos(win.cury + 1, 0) unless win.curx == 0
+    # end
 
-    (win.maxy - win.cury - 1).times { win.deleteln }
+    # (win.maxy - win.cury - 1).times { win.deleteln }
 
-    win.refresh
+    # win.refresh
   end
 
   def print_line(line, win, default_color = Curses.color_pair(1))
@@ -178,13 +173,16 @@ class WindowManager
   end
 
   def print_with_color(line, win)
+    space_left = true
+
     line.each do |token|
+      $logger.info("token at #{win.curx}")
       if token[0] == :timestamp
-        print_up_to_max(token[1], win)
+        space_left = print_up_to_max(token[1], win) if space_left
       elsif token[0] == :request_uuid
-        print_up_to_max(token[1], win)
+        space_left = print_up_to_max(token[1], win) if space_left
       elsif token[0] == :content
-        print_up_to_max(token[1], win)
+        space_left = print_up_to_max(token[1], win) if space_left
        elsif token[0] == :color
         win.attron(ansii_to_curses_pair(token[1]))
       end
@@ -195,6 +193,9 @@ class WindowManager
     space_remaining = win.maxx - win.curx - 1
     fragment = line[0..space_remaining]
     win.addstr(fragment)
+    # Return false when we have printed something and ended up on the next line.
+    # That means we shouldn't print anymore.
+    !(line.length > 0 && win.curx == 0)
   end
 
   def ansii_to_curses_pair(ansii_code)

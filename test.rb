@@ -80,7 +80,7 @@ def get_input(win_manager, request_queue_manager)
   when '2'
     # win_manager.toggle_collapse_column(2)
   when 'w'
-    # win_manager.toggle_line_wrap
+    request_queue_manager.toggle_line_wrap(win_manager.win.maxy, win_manager.win.maxx)
   when 'a'
     win_manager.grow_index_window_size(-1)
     request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx)
@@ -109,7 +109,7 @@ end
 
 request_queue_manager = RequestQueueManager.new
 win_manager = WindowManager.new(request_queue_manager)
-request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx)
+request_queue_manager.set_dimensions(win_manager.win.maxy)
 
 handle_lines(buffer, win_manager, request_queue_manager) if buffer
 

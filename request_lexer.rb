@@ -38,10 +38,11 @@ end
 class RequestTree
   attr_reader :lines
 
-  def initialize(lines, width = 9999)
+  def initialize(lines, width = Float::INFINITY)
     @lines = lines.collect { |line| RequestLexer.new(line).tokens }
+    @lines[0].unshift([:cursor, nil]) unless @lines.empty?
     @width = width
-
+$logger.info("width #{width}")
     @lines.each_with_index do |line, i|
       line.each do |token|
         token[3] = i
@@ -51,7 +52,6 @@ class RequestTree
     tokens_from_lines
     add_token_lengths(@tokens)
     fit_width
-    p "lines #{@lines}"
   end
 
   def add_line(raw_line)
@@ -62,9 +62,10 @@ class RequestTree
       last_line_num = last_token[3] + 1
     else
       last_line_num = 0
+      line.unshift([:cursor, nil])
     end
+    add_token_lengths(line)
     line.each do |token|
-      token[2] = token[1].length
       token[3] = last_line_num
     end
     add_token_lengths(line)
@@ -74,9 +75,11 @@ class RequestTree
   end
 
   def new_width(width)
+    $logger.info("new width #{@lines}")
     @width = width
     tokens_from_lines
     fit_width
+    $logger.info("new width fit #{@lines}")
   end
 
   private
@@ -88,7 +91,7 @@ class RequestTree
         case token[0]
         when :content, :timestamp, :request_uuid
           token[1].length
-        when :color
+        when :color, :cursor
           0
         end
     end
@@ -121,6 +124,10 @@ class RequestTree
         cur_line_spare_room = @width
         @lines << cur_line
         cur_line_index = token[3]
+      elsif token[2] > 0 && cur_line_spare_room == 0
+        cur_line = []
+        cur_line_spare_room = @width
+        @lines << cur_line
       end
 
       if token[2] <= cur_line_spare_room
@@ -133,12 +140,6 @@ class RequestTree
         token2 = [token[0], remaining, remaining.length, token[3]]
         @tokens.unshift(token2)
         cur_line_spare_room = 0
-      end
-
-      if cur_line_spare_room == 0
-        cur_line = []
-        cur_line_spare_room = @width
-        @lines << cur_line
       end
     end
   end

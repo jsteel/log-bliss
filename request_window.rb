@@ -18,14 +18,16 @@ class RequestWindow
   def_delegators :@request_slide, :move_cursor_down, :move_cursor_up, :toggle_scrolling
 
   def set_dimensions(height, width)
-    @request_slide.height = height
+    @request_tree.new_width(width) if width
+    @request_slide.new_height(height)
+    @request_slide.max_size = @request_tree.lines.length
   end
 
-  def visible_lines(max_count)
-    $logger.info("slide #{@request_slide.requests_first} #{@request_slide.requests_last} #{@request_slide.requests_current}")
+  def visible_lines
     (@request_slide.requests_first...@request_slide.requests_last).each_with_index do |line_index, i|
       line = @request_tree.lines[line_index]
       next unless line
+      # $logger.info("line #{line}")
       yield(line_index == @request_slide.requests_current, line, i)
     end
   end

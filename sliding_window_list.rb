@@ -39,13 +39,13 @@ class SlidingWindowList
       shrink_amount = @max_size - new_max_size
       # Use the free space at the end first
       shrink_amount -= (@height - (@requests_last - @requests_first)).clamp(0, shrink_amount)
-      $logger.info("shink amount #{shrink_amount}")
+      # $logger.info("shink amount #{shrink_amount}")
       # Then shrink past entries at the end
       room_to_shrink_after = [@requests_last - @requests_current - 1, 0].max
-      $logger.info("shink amount #{room_to_shrink_after}")
+      # $logger.info("shink amount #{room_to_shrink_after}")
       shrink_after = [shrink_amount, room_to_shrink_after].min
       shrink_amount -= shrink_after
-      $logger.info("shink amount #{shrink_amount}")
+      # $logger.info("shink amount #{shrink_amount}")
       @requests_last -= shrink_after
       # Finally shrink in front the rest of the way
       @requests_first = @requests_first + shrink_amount
@@ -81,6 +81,26 @@ class SlidingWindowList
 
     @height = new_height
     debug("new_height")
+  end
+
+  def move_cursor(new_line_number)
+    debug("move cursor- #{new_line_number}: ")
+    @requests_current = new_line_number
+
+    if @requests_current < @requests_first
+      debug("move cursor0 #{new_line_number}")
+      diff = @requests_first - @requests_current
+      @requests_first = @requests_current
+      @requests_last -= diff
+      debug("move cursor00 #{new_line_number}")
+    elsif @requests_current >= @requests_last
+      debug("move cursor1 #{new_line_number}")
+      diff = @requests_current - @requests_last + 1
+      @requests_last = @requests_current + 1
+      @requests_first += diff
+      debug("move cursor2 #{new_line_number}")
+    end
+    debug("move cursor+ #{new_line_number}: ")
   end
 
   def add_one

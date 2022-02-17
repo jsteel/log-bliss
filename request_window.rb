@@ -17,17 +17,40 @@ class RequestWindow
   extend Forwardable
   def_delegators :@request_slide, :move_cursor_down, :move_cursor_up, :toggle_scrolling
 
+  def move_cursor_up
+    @request_slide.move_cursor_up
+    @request_tree.move_cursor(@request_slide.requests_current)
+  end
+
+  def move_cursor_down
+    @request_slide.move_cursor_down
+    @request_tree.move_cursor(@request_slide.requests_current)
+  end
+
   def set_dimensions(height, width)
     @request_tree.new_width(width) if width
     @request_slide.new_height(height)
     @request_slide.max_size = @request_tree.lines.length
+    # TODO If there is no width, moving to no line wrap. Get the  current line
+    # parent line number one and feed that back to the slide. Otherwise get the
+    # line number, not the parents.
+    # Not quite working yet.
+    current_line =
+      if width
+        @request_tree.cursor_line_number
+      else
+        @request_tree.cursor_parent_line_number
+      end
+    $logger.info("current line #{current_line}")
+    @request_slide.move_cursor(current_line) if current_line
   end
 
   def visible_lines
+    $logger.info("visible lines ----------------")
     (@request_slide.requests_first...@request_slide.requests_last).each_with_index do |line_index, i|
       line = @request_tree.lines[line_index]
       next unless line
-      # $logger.info("line #{line}")
+      $logger.info("line #{line}")
       yield(line_index == @request_slide.requests_current, line, i)
     end
   end

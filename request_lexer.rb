@@ -75,11 +75,52 @@ $logger.info("width #{width}")
   end
 
   def new_width(width)
-    $logger.info("new width #{@lines}")
+    # $logger.info("new width #{@lines}")
     @width = width
     tokens_from_lines
     fit_width
-    $logger.info("new width fit #{@lines}")
+    # $logger.info("new width fit #{@lines}")
+  end
+
+  def move_cursor(new_position)
+    cursor = nil
+    $logger.info("New position #{new_position} - #{@lines}")
+
+    # TODO Store a pointer to the cursor always so I don't have to find it
+    @lines.each do |line|
+      line.each do |token|
+        cursor = token if token[0] == :cursor
+        line.delete(cursor)
+      end
+    end
+
+    raise "cursor not found #{@lines}" unless cursor
+
+    line = @lines[new_position]
+    cursor[3] = line[0][3]
+    line.unshift(cursor)
+  end
+
+  def cursor_parent_line_number
+    @lines.each do |line|
+      line.each do |token|
+        $logger.info("token here? #{token}")
+        return token[3] if token[0] == :cursor
+      end
+    end
+
+    nil
+  end
+
+  def cursor_line_number
+    @lines.each_with_index do |line, line_number|
+      line.each do |token|
+        $logger.info("token here? #{token}")
+        return line_number if token[0] == :cursor
+      end
+    end
+
+    nil
   end
 
   private

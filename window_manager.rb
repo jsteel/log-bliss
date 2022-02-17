@@ -137,7 +137,7 @@ class WindowManager
     win = @win
 
     @request_queue.get_lines do |selected, line, i|
-      $logger.info("line #{line}")
+      # $logger.info("line #{line}")
       win.setpos(i, 0)
       print_line(line, win, selected ? Curses.color_pair(2) : Curses.color_pair(1))
       win.clrtoeol()
@@ -176,14 +176,14 @@ class WindowManager
     space_left = true
 
     line.each do |token|
-      $logger.info("token at #{win.curx}")
+      # $logger.info("token at #{win.curx}")
       if token[0] == :timestamp
         space_left = print_up_to_max(token[1], win) if space_left
       elsif token[0] == :request_uuid
         space_left = print_up_to_max(token[1], win) if space_left
       elsif token[0] == :content
         space_left = print_up_to_max(token[1], win) if space_left
-       elsif token[0] == :color
+      elsif token[0] == :color
         win.attron(ansii_to_curses_pair(token[1]))
       end
     end

@@ -15,22 +15,43 @@ class SlidingWindowList
   attr_reader :requests_last
   attr_writer :height
 
-  def initialize(height: 0, first: 0, last: 0, current: 0)
-    @requests_first = first
+  def initialize(height: 0, first: 0, last: nil, current: 0, max_size: nil)
+    @requests_first = [first, 0].max
     @requests_current = current
-    @requests_last = last
+    @requests_last = last || @requests_first + height
 
     @requests_scrolling = true
 
-    @max_size = @requests_last
+    @max_size = max_size || @requests_last
+    @requests_last = [@requests_last, @max_size].min
     @height = height
   end
 
+  # Instead of setting a new max size, just create an entirely new sliding window
+  # list. Find the line for the first item and the current, you can create new
+  # matching sliding window from those two things plus max size and max height
   def max_size=(new_max_size)
+    if new_max_size > @max_size
+      @height = [@height, @max_size].min
+      new_height(@height)
+      @max_size = new_max_size
+    else
+      @max_size = new_max_size
+      # Push 
+    end
+    return
+
     debug("max_sizes #{new_max_size}:")
     if new_max_size > @max_size
       grow_amount = new_max_size - @max_size
+      height_used = @requests_last - @requests_first
+      p height_used
+      room_to_grow = @height - height_used
+      p room_to_grow
+
+      grow_amount = [grow_amount, room_to_grow].min
       room_to_grow = new_max_size - @requests_last
+
       grow_at_end = [grow_amount, room_to_grow].min
       grow_amount -= grow_at_end
       @requests_last += grow_at_end
@@ -171,6 +192,6 @@ class SlidingWindowList
   end
 
   def debug(extra)
-    $logger.info("List #{extra} #{@requests_first} #{@requests_current} #{@requests_last} #{@max_size}")
+    $logger.info("List #{extra}: #{@requests_first} #{@requests_current} #{@requests_last} #{@height} #{@max_size}")
   end
 end

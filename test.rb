@@ -34,7 +34,7 @@ OptionParser.new do |opts|
   end
 end.parse!
 
-require 'logger'
+require "logger"
 
 $logger = Logger.new("/tmp/log")
 

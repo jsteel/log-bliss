@@ -54,9 +54,8 @@ class RequestQueueManager
     @request_index_window.move_cursor_up
   end
 
-  # TODO Width is not used
   def set_dimensions(height, width = nil)
-    @request_index_window.set_dimensions(height, width)
+    @request_index_window.set_dimensions(height, @line_wrap ? width : Float::INFINITY)
   end
 
   def toggle_scrolling

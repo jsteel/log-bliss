@@ -42,7 +42,7 @@ class RequestTree
     @lines = lines.collect { |line| RequestLexer.new(line).tokens }
     @lines[0].unshift([:cursor, nil]) unless @lines.empty?
     @width = width
-$logger.info("width #{width}")
+# $logger.info("width #{width}")
     @lines.each_with_index do |line, i|
       line.each do |token|
         token[3] = i
@@ -84,7 +84,7 @@ $logger.info("width #{width}")
 
   def move_cursor(new_position)
     cursor = nil
-    $logger.info("New position #{new_position} - #{@lines}")
+    # $logger.info("New position #{new_position} - #{@lines}")
 
     # TODO Store a pointer to the cursor always so I don't have to find it
     @lines.each do |line|
@@ -104,7 +104,6 @@ $logger.info("width #{width}")
   def cursor_parent_line_number
     @lines.each do |line|
       line.each do |token|
-        $logger.info("token here? #{token}")
         return token[3] if token[0] == :cursor
       end
     end
@@ -115,7 +114,6 @@ $logger.info("width #{width}")
   def cursor_line_number
     @lines.each_with_index do |line, line_number|
       line.each do |token|
-        $logger.info("token here? #{token}")
         return line_number if token[0] == :cursor
       end
     end

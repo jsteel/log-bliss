@@ -13,7 +13,7 @@ class SlidingWindowList
   attr_reader :requests_current
   attr_reader :requests_first
   attr_reader :requests_last
-  attr_writer :height
+  attr_accessor :height
 
   def initialize(height: 0, first: 0, last: nil, current: 0, max_size: nil)
     @requests_first = [first, 0].max
@@ -76,8 +76,7 @@ class SlidingWindowList
     debug("max_size")
   end
 
-  # TODO Must shrink the hegith as well as the max size There must be some more
-  # elegant way to do this.
+  # TODO Think I'm not using this
   def new_height(new_height)
     debug("new_heights")
     if new_height > @height
@@ -131,6 +130,7 @@ class SlidingWindowList
       @requests_last += 1
       if @requests_last - @requests_first > @height
         @requests_first += 1
+        debug("add one line")
         @requests_current = [@requests_current, @requests_first].max
       end
     elsif @requests_last < @height

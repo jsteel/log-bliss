@@ -6,12 +6,12 @@ class WindowManager
   attr_reader :screen_layout
   attr_accessor :redraw
 
-  def initialize(request_queue)
+  def initialize(request_queue_manager)
     Curses.init_screen
 
     $logger.info("Screen #{Curses.lines.to_s}x#{Curses.cols.to_s}")
 
-    @request_queue = request_queue
+    @request_queue_manager = request_queue_manager
 
     setup_split_horizontal
 
@@ -98,7 +98,6 @@ class WindowManager
     @win3.refresh
     @win2 = Curses::Window.new(Curses.lines - @horizontal_index_window_size - 1, 0, @horizontal_index_window_size + 1, 0)
     @win.nodelay = true
-    @request_queue.reset_scroll_position(@win.maxy, @win2&.maxy)
   end
 
   def setup_split_vertical
@@ -113,7 +112,6 @@ class WindowManager
     @win3.refresh
     @win2 = Curses::Window.new(0, Curses.cols - @vertical_index_window_size - 1, 0, @vertical_index_window_size + 1)
     @win.nodelay = true
-    @request_queue.reset_scroll_position(@win.maxy, @win2&.maxy)
   end
 
   def setup_full_request
@@ -121,14 +119,12 @@ class WindowManager
     @win = Curses::Window.new(1, 0, 0, 0)
     @win2 = Curses::Window.new(Curses.lines - 1, 0, 1, 0)
     @win.nodelay = true
-    @request_queue.reset_scroll_position(@win.maxy, @win2&.maxy)
   end
 
   def setup_full_index
     # height, width, top, left
     @win = Curses::Window.new(Curses.lines, 0, 0, 0)
     @win.nodelay = true
-    @request_queue.reset_scroll_position(@win.maxy, @win2&.maxy)
   end
 
   def redraw_index
@@ -136,8 +132,7 @@ class WindowManager
 
     win = @win
 
-    @request_queue.get_lines do |selected, line, i|
-      # $logger.info("line #{line}")
+    @request_queue_manager.index_lines do |selected, line, i|
       win.setpos(i, 0)
       print_line(line, win, selected ? Curses.color_pair(2) : Curses.color_pair(1))
       win.clrtoeol()
@@ -150,21 +145,21 @@ class WindowManager
   end
 
   def draw_request
-    # return unless @win2
+    return unless @win2
 
-    # win = @win2
-    # win.setpos(0, 0)
+    win = @win2
+    win.setpos(0, 0)
 
-    # @request_queue.current_request_lines(@line_wrap, win.maxx) do |line, i|
-    #   next if win.cury >= win.maxy
-    #   print_line(line, win)
-    #   win.clrtoeol()
-    #   win.setpos(win.cury + 1, 0) unless win.curx == 0
-    # end
+    @request_queue_manager.request_lines do |selected, line, i|
+      win.setpos(i, 0)
+      print_line(line, win)
+      win.clrtoeol()
+    end
 
-    # (win.maxy - win.cury - 1).times { win.deleteln }
+    win.setpos(win.cury + 1, 0)
+    (win.maxy - win.cury - 1).times { win.deleteln }
 
-    # win.refresh
+    win.refresh
   end
 
   def print_line(line, win, default_color = Curses.color_pair(1))
@@ -176,7 +171,6 @@ class WindowManager
     space_left = true
 
     line.each do |token|
-      # $logger.info("token at #{win.curx}")
       if token[0] == :timestamp
         space_left = print_up_to_max(token[1], win) if space_left
       elsif token[0] == :request_uuid

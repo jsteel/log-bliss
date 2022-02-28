@@ -29,7 +29,8 @@ class RequestQueue
     { request_uuid: uuid, new_request: false }
   end
 
-  def lines_for_request(request_uuid)
+  def lines_for_request(request_num)
+    @requests[@request_queue[request_num]]
   end
 
   private

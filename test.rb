@@ -61,16 +61,19 @@ def get_input(win_manager, request_queue_manager)
   when 'i'
     request_queue_manager.toggle_scrolling
   when 'u'
-    # Split windows
-    # if win_manager.screen_layout == :split_horizontal
-    #   win_manager.screen_layout = :split_vertical
-    # elsif win_manager.screen_layout == :split_vertical
-    #   win_manager.screen_layout = :full_request
-    # elsif win_manager.screen_layout == :full_request
-    #   win_manager.screen_layout = :full_index
-    # else
-    #   win_manager.screen_layout = :split_horizontal
-    # end
+    if win_manager.screen_layout == :split_horizontal
+      win_manager.screen_layout = :split_vertical
+      request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxy)
+    elsif win_manager.screen_layout == :split_vertical
+      request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxy)
+      win_manager.screen_layout = :full_request
+    elsif win_manager.screen_layout == :full_request
+      win_manager.screen_layout = :full_index
+      request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxy)
+    else
+      win_manager.screen_layout = :split_horizontal
+      request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxy)
+    end
   when 'c'
     # request_queue_manager.reset
   when 'x'
@@ -83,10 +86,10 @@ def get_input(win_manager, request_queue_manager)
     request_queue_manager.toggle_line_wrap(win_manager.win.maxy, win_manager.win.maxx)
   when 'a'
     win_manager.grow_index_window_size(-1)
-    request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx)
+    request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxy)
   when 's'
     win_manager.grow_index_window_size(1)
-    request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx)
+    request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxy)
   when 'q'
     exit 0
   when 'p'
@@ -109,7 +112,8 @@ end
 
 request_queue_manager = RequestQueueManager.new
 win_manager = WindowManager.new(request_queue_manager)
-request_queue_manager.set_dimensions(win_manager.win.maxy)
+
+request_queue_manager.set_dimensions(win_manager.win.maxy, nil, win_manager.win2&.maxy, nil)
 
 handle_lines(buffer, win_manager, request_queue_manager) if buffer
 

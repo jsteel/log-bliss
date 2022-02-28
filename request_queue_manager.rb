@@ -8,6 +8,7 @@ class RequestQueueManager
     @log_slide = SlidingWindowList.new
     @request_queue = RequestQueue.new
     @request_index_window = RequestWindow.new([])
+    @request_window = RequestWindow.new([])
     @line_wrap = false
   end
 
@@ -16,6 +17,7 @@ class RequestQueueManager
 
     if line_info[:new_request]
       @request_index_window.add_one(raw_line)
+      change_request
     elsif line_info[:request_uuid] == @current_request_uuid
       # TODO If it's the first line, send that as a replacement to request_index_window
       #   first_line = lines.find { |line| line =~ /Processing/ } || lines.first
@@ -23,8 +25,12 @@ class RequestQueueManager
     end
   end
 
-  def get_lines(&block)
+  def index_lines(&block)
     @request_index_window.visible_lines(&block)
+  end
+
+  def request_lines(&block)
+    @request_window.visible_lines(&block)
   end
 
   def current_request_lines(line_wrap, maxx)
@@ -48,14 +54,18 @@ class RequestQueueManager
 
   def move_cursor_down
     @request_index_window.move_cursor_down
+    change_request
   end
 
   def move_cursor_up
     @request_index_window.move_cursor_up
+    change_request
   end
 
-  def set_dimensions(height, width = nil)
+  def set_dimensions(height, width, request_height, request_width)
+    $logger.info("set dimensions #{height}")
     @request_index_window.set_dimensions(height, @line_wrap ? width : Float::INFINITY)
+    @request_window.set_dimensions(request_height, @line_wrap ? width : Float::INFINITY) if request_height
   end
 
   def toggle_scrolling
@@ -92,5 +102,13 @@ class RequestQueueManager
      file.puts @lines_for_request.lines_for_request(@current_request_uuid).join("\n")
     end
     system("cat /tmp/log_copy | pbcopy")
+  end
+
+  private
+
+  def change_request
+    # TODO The height needs to be set correctly.
+    $logger.info("Change request height #{@request_window.height}")
+    @request_window = RequestWindow.new(@request_queue.lines_for_request(@request_index_window.requests_current) || [], @request_window.height)
   end
 end

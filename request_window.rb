@@ -1,12 +1,12 @@
 require "./request_lexer"
 
 class RequestWindow
-  def initialize(raw_lines)
+  def initialize(raw_lines, height = 0)
     @request_tree = RequestTree.new(raw_lines)
     # TODO Initialize sliding window. I wasn't using a sliding window list for the request window
     # before. Should I be? Or should it just be a simple size? Could pass the windowing function into
     # here (strategy pattern?).
-    @request_slide = SlidingWindowList.new
+    @request_slide = SlidingWindowList.new(height: height)
   end
 
   def add_one(raw_line)
@@ -16,7 +16,7 @@ class RequestWindow
   end
 
   extend Forwardable
-  def_delegators :@request_slide, :toggle_scrolling
+  def_delegators :@request_slide, :toggle_scrolling, :requests_current, :height
 
   def move_cursor_up
     @request_slide.move_cursor_up
@@ -31,7 +31,6 @@ class RequestWindow
   def set_dimensions(height, width)
     $logger.info("set dimensions #{height}, #{width}")
     @request_tree.new_width(width) if width
-    @request_slide.new_height(height)
 
     current_line =
       if width
@@ -39,20 +38,16 @@ class RequestWindow
       else
         @request_tree.cursor_parent_line_number
       end
-    $logger.info("current line #{current_line} - #{@request_tree.lines}")
-    # @request_slide.move_cursor(current_line) if current_line
-    height_diff = @request_slide.requests_current - @request_slide.requests_first
-    # @request_slide.max_size = @request_tree.lines.length
+
     @request_slide = SlidingWindowList.new(
       height: height,
-      first: current_line ? current_line - height_diff : 0,
-      current: current_line || 0,
+      first: @request_slide.requests_first || 0,
+      current: current_line ? [@request_slide.requests_first + height - 1, current_line].min : 0,
       max_size: @request_tree.lines.count
     )
   end
 
   def visible_lines
-    # $logger.info("visible lines ----------------")
     (@request_slide.requests_first...@request_slide.requests_last).each_with_index do |line_index, i|
       line = @request_tree.lines[line_index]
       next unless line

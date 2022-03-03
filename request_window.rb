@@ -6,7 +6,7 @@ class RequestWindow
     # TODO Initialize sliding window. I wasn't using a sliding window list for the request window
     # before. Should I be? Or should it just be a simple size? Could pass the windowing function into
     # here (strategy pattern?).
-    @request_slide = SlidingWindowList.new(height: height)
+    @request_slide = SlidingWindowList.new(height: height, max_size: @request_tree.lines.count)
   end
 
   def add_one(raw_line)
@@ -25,6 +25,16 @@ class RequestWindow
 
   def move_cursor_down
     @request_slide.move_cursor_down
+    @request_tree.move_cursor(@request_slide.requests_current)
+  end
+
+  def slide_cursor_up
+    @request_slide.slide_up
+    @request_tree.move_cursor(@request_slide.requests_current)
+  end
+
+  def slide_cursor_down
+    @request_slide.slide_down
     @request_tree.move_cursor(@request_slide.requests_current)
   end
 

@@ -164,6 +164,7 @@ class SlidingWindowList
   end
 
   def slide_down
+    debug("slide down")
     return if @requests_last == @max_size
 
     @requests_current += 1
@@ -201,6 +202,6 @@ class SlidingWindowList
   end
 
   def debug(extra)
-    $logger.info("List #{extra}: #{@requests_first} #{@requests_current} #{@requests_last} #{@height} #{@max_size}")
+    $logger.info("List #{extra}: f#{@requests_first} c#{@requests_current} l#{@requests_last} h#{@height} m#{@max_size}")
   end
 end

@@ -53,9 +53,9 @@ def get_input(win_manager, request_queue_manager)
   when 'k'
     request_queue_manager.move_cursor_up
   when 'm'
-    # request_queue_manager.move_log_down
+    request_queue_manager.move_log_down
   when ','
-    # request_queue_manager.move_log_up
+    request_queue_manager.move_log_up
   when 'i'
     request_queue_manager.toggle_scrolling
   when 'u'

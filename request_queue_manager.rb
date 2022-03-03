@@ -62,8 +62,15 @@ class RequestQueueManager
     change_request
   end
 
+  def move_log_down
+    @request_window.slide_cursor_down
+  end
+
+  def move_log_up
+    @request_window.slide_cursor_up
+  end
+
   def set_dimensions(height, width, request_height, request_width)
-    $logger.info("set dimensions:: #{height} #{width} #{request_height} #{request_width}")
     @request_index_window.set_dimensions(height, @line_wrap ? width : Float::INFINITY)
     @request_window.set_dimensions(request_height, @line_wrap ? width : Float::INFINITY) if request_height
   end
@@ -89,14 +96,6 @@ class RequestQueueManager
     # @log_slide.reset_scroll_position(@log_window_height, current_request&.length || 0, true)
   end
 
-  def move_log_down
-    # @log_slide.slide_down
-  end
-
-  def move_log_up
-    # @log_slide.slide_up
-  end
-
   def copy_current_request
     File.open("/tmp/log_copy", "w") do |file|
      file.puts @lines_for_request.lines_for_request(@current_request_uuid).join("\n")
@@ -107,7 +106,6 @@ class RequestQueueManager
   private
 
   def change_request
-    # TODO The height needs to be set correctly.
     $logger.info("Change request height #{@request_window.height}")
     @request_window = RequestWindow.new(@request_queue.lines_for_request(@request_index_window.requests_current) || [], @request_window.height)
   end

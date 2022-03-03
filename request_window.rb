@@ -42,7 +42,7 @@ class RequestWindow
     @request_slide = SlidingWindowList.new(
       height: height,
       first: @request_slide.requests_first || 0,
-      current: current_line ? [@request_slide.requests_first + height - 1, current_line].min : 0,
+      current: current_line ? current_line : 0,
       max_size: @request_tree.lines.count
     )
   end

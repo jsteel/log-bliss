@@ -63,7 +63,7 @@ class RequestQueueManager
   end
 
   def set_dimensions(height, width, request_height, request_width)
-    $logger.info("set dimensions #{height}")
+    $logger.info("set dimensions:: #{height} #{width} #{request_height} #{request_width}")
     @request_index_window.set_dimensions(height, @line_wrap ? width : Float::INFINITY)
     @request_window.set_dimensions(request_height, @line_wrap ? width : Float::INFINITY) if request_height
   end

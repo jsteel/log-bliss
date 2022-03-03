@@ -19,9 +19,7 @@ require "./tail"
 # Ncurses tutorial: http://jbwyatt.com/ncurses.html#input
 
 # TODO
-# Word wraping working. Now fix the toggle between the two modes. In toggle_line_wrap
-# call down to reuqest queue, rebuild the log_slide, and figure out how to
-# position the current element.
+# Request queue sliding
 
 go_back_count = nil
 
@@ -63,17 +61,14 @@ def get_input(win_manager, request_queue_manager)
   when 'u'
     if win_manager.screen_layout == :split_horizontal
       win_manager.screen_layout = :split_vertical
-      request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxy)
     elsif win_manager.screen_layout == :split_vertical
-      request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxy)
       win_manager.screen_layout = :full_request
     elsif win_manager.screen_layout == :full_request
       win_manager.screen_layout = :full_index
-      request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxy)
     else
       win_manager.screen_layout = :split_horizontal
-      request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxy)
     end
+    request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxx)
   when 'c'
     # request_queue_manager.reset
   when 'x'

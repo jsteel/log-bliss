@@ -16,6 +16,7 @@ class SlidingWindowList
   attr_accessor :height
 
   def initialize(height: 0, first: 0, last: nil, current: 0, max_size: nil)
+    $logger.info("--> h#{height} f#{first} l#{last} c#{current} m#{max_size}")
     @requests_first = [first, 0].max
     @requests_current = current
     @requests_last = last || @requests_first + height
@@ -25,6 +26,15 @@ class SlidingWindowList
     @max_size = max_size || @requests_last
     @requests_last = [@requests_last, @max_size].min
     @height = height
+
+    cur_height = @requests_last - @requests_first
+    change_height(cur_height, @height)
+    # grow_amount = @height - cur_height
+    # room_to_grow = @max_size - @requests_last
+    # grow_at_end = [grow_amount, room_to_grow].min
+    # grow_amount -= grow_at_end
+    # @requests_last += grow_at_end
+    # @requests_first = [@requests_first - grow_amount, 0].max
   end
 
   # Instead of setting a new max size, just create an entirely new sliding window
@@ -77,19 +87,20 @@ class SlidingWindowList
   end
 
   # TODO Think I'm not using this
-  def new_height(new_height)
+  def change_height(current_height, new_height)
     debug("new_heights")
-    if new_height > @height
-      grow_amount = new_height - @height
+    if new_height > current_height
+      grow_amount = new_height - current_height
       room_to_grow = @max_size - @requests_last
       grow_at_end = [grow_amount, room_to_grow].min
       grow_amount -= grow_at_end
       @requests_last += grow_at_end
       @requests_first = [@requests_first - grow_amount, 0].max
     else
-      shrink_amount = @height - new_height
+      debug("shrink")
+      shrink_amount = current_height - new_height
       # Use the free space at the end first
-      shrink_amount -= (@height - (@requests_last - @requests_first)).clamp(0, shrink_amount)
+      shrink_amount -= (current_height - (@requests_last - @requests_first)).clamp(0, shrink_amount)
       # Then shrink past entries at the end
       room_to_shrink_after = @requests_last - @requests_current - 1
       shrink_after = [shrink_amount, room_to_shrink_after].min
@@ -98,9 +109,7 @@ class SlidingWindowList
       # Finally shrink in front the rest of the way
       @requests_first = @requests_first + shrink_amount
     end
-
-    @height = new_height
-    debug("new_height")
+    # debug("new_height")
   end
 
   def move_cursor(new_line_number)

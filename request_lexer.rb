@@ -17,8 +17,9 @@ class RequestLexer
 
     if scanner.scan(/\[(\d\d:\d\d:\d\d\.\d\d\d)?\]/)
       tokens << [:timestamp, scanner.captures.first]
-      if scanner.scan(/\W*\[(request_uuid:[\w-]+)?\]/)
-        tokens << [:request_uuid, scanner.captures.first]
+      if scanner.scan(/(\W)*\[(request_uuid:[\w-]+)?\]/)
+        tokens << [:content, scanner.captures.first] if scanner.captures.first
+        tokens << [:request_uuid, scanner.captures.last]
       end
     end
 
@@ -48,6 +49,8 @@ class RequestTree
         token[3] = i
       end
     end
+
+    @columns_collapsed = []
 
     tokens_from_lines
     add_token_lengths(@tokens)
@@ -121,6 +124,11 @@ class RequestTree
     nil
   end
 
+  def toggle_column(column_num, collumn_collapsed)
+    @columns_collapsed[column_num] = collumn_collapsed
+    new_width(@width)
+  end
+
   private
 
   def add_token_lengths(tokens)
@@ -128,8 +136,12 @@ class RequestTree
     tokens.each do |token|
       token[2] =
         case token[0]
-        when :content, :timestamp, :request_uuid
+        when :content
           token[1].length
+        when :timestamp
+          @columns_collapsed[1] ? 2 : token[1].length
+        when :request_uuid
+          @columns_collapsed[2] ? 2 : token[1].length
         when :color, :cursor
           0
         end

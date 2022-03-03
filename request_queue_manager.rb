@@ -3,9 +3,12 @@ require "./request_queue"
 require "./request_window"
 
 class RequestQueueManager
+  attr_reader :collapsed_columns
+
   def initialize
     reset
     @line_wrap = false
+    @collapsed_columns = Set.new
   end
 
   def add_line(raw_line)
@@ -45,6 +48,19 @@ class RequestQueueManager
 
   def move_log_up
     @request_window.slide_cursor_up
+  end
+
+  def toggle_column_collapse(column_num)
+    if @collapsed_columns.include?(column_num)
+      @collapsed_columns.delete(column_num)
+      collumn_collapsed = false
+    else
+      @collapsed_columns.add(column_num)
+      collumn_collapsed = true
+    end
+
+    @request_index_window.toggle_column_collapse(column_num, collumn_collapsed)
+    @request_window.toggle_column_collapse(column_num, collumn_collapsed)
   end
 
   def set_dimensions(height, width, request_height, request_width)

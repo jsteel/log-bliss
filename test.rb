@@ -19,7 +19,8 @@ require "./tail"
 # Ncurses tutorial: http://jbwyatt.com/ncurses.html#input
 
 # TODO
-# Request queue sliding
+# The todo for stack traces
+# Use strategy for sliding window lists instead of the move and slide functions
 
 go_back_count = nil
 
@@ -42,6 +43,8 @@ if ARGV[-1]
 else
   @input = PipeTail.new
 end
+
+
 
 def get_input(win_manager, request_queue_manager)
   str = win_manager.win.getstr.to_s.chomp
@@ -74,9 +77,9 @@ def get_input(win_manager, request_queue_manager)
   when 'x'
     request_queue_manager.copy_current_request
   when '1'
-    # win_manager.toggle_collapse_column(1)
+    request_queue_manager.toggle_column_collapse(1)
   when '2'
-    # win_manager.toggle_collapse_column(2)
+    request_queue_manager.toggle_column_collapse(2)
   when 'w'
     request_queue_manager.toggle_line_wrap(win_manager.win.maxy, win_manager.win.maxx)
   when 'a'

@@ -38,6 +38,10 @@ class RequestWindow
     @request_tree.move_cursor(@request_slide.requests_current)
   end
 
+  def toggle_column_collapse(column_num, collumn_collapsed)
+    @request_tree.toggle_column(column_num, collumn_collapsed)
+  end
+
   def set_dimensions(height, width)
     $logger.info("set dimensions #{height}, #{width}")
     @request_tree.new_width(width) if width

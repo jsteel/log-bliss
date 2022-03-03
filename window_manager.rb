@@ -29,8 +29,6 @@ class WindowManager
     Curses.init_pair(7, Curses::COLOR_GREEN, 0)
 
     @screen_layout = :split_horizontal
-
-    @collapsed_columns = Set.new
   end
 
   def screen_layout=(new_layout)
@@ -48,14 +46,6 @@ class WindowManager
       setup_full_index
     else
       raise "Invalid window layout #{new_layout}"
-    end
-  end
-
-  def toggle_collapse_column(column_num)
-    if @collapsed_columns.include?(column_num)
-      @collapsed_columns.delete(column_num)
-    else
-      @collapsed_columns.add(column_num)
     end
   end
 
@@ -177,9 +167,11 @@ class WindowManager
 
     line.each do |token|
       if token[0] == :timestamp
-        space_left = print_up_to_max(token[1], win) if space_left
+        column = @request_queue_manager.collapsed_columns.include?(1) ? "[]" : token[1]
+        space_left = print_up_to_max(column, win) if space_left
       elsif token[0] == :request_uuid
-        space_left = print_up_to_max(token[1], win) if space_left
+        column = @request_queue_manager.collapsed_columns.include?(2) ? "[]" : token[1]
+        space_left = print_up_to_max(column, win) if space_left
       elsif token[0] == :content
         space_left = print_up_to_max(token[1], win) if space_left
       elsif token[0] == :color

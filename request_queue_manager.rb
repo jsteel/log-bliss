@@ -4,11 +4,7 @@ require "./request_window"
 
 class RequestQueueManager
   def initialize
-    @request_slide = SlidingWindowList.new
-    @log_slide = SlidingWindowList.new
-    @request_queue = RequestQueue.new
-    @request_index_window = RequestWindow.new([])
-    @request_window = RequestWindow.new([])
+    reset
     @line_wrap = false
   end
 
@@ -90,10 +86,12 @@ class RequestQueueManager
     # @request_slide.reset_scroll_position(index_height, @request_queue.length)
   end
 
-  def reset_log_slide
-    # return unless @log_window_height
-
-    # @log_slide.reset_scroll_position(@log_window_height, current_request&.length || 0, true)
+  def reset
+    @request_slide = SlidingWindowList.new
+    @log_slide = SlidingWindowList.new
+    @request_queue = RequestQueue.new
+    @request_index_window = RequestWindow.new([])
+    @request_window = RequestWindow.new([])
   end
 
   def copy_current_request

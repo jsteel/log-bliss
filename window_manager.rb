@@ -131,6 +131,9 @@ class WindowManager
     return unless @win
 
     win = @win
+    win.setpos(0, 0)
+    # Clear in case the results are empty
+    win.clrtoeol()
 
     @request_queue_manager.index_lines do |selected, line, i|
       win.setpos(i, 0)
@@ -149,6 +152,8 @@ class WindowManager
 
     win = @win2
     win.setpos(0, 0)
+    # Clear in case the results are empty
+    win.clrtoeol()
 
     @request_queue_manager.request_lines do |selected, line, i|
       win.setpos(i, 0)

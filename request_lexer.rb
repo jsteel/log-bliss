@@ -94,7 +94,7 @@ class RequestTree
       end
     end
 
-    raise "cursor not found #{@lines}" unless cursor
+    return unless cursor
 
     line = @lines[new_position]
     cursor[3] = line[0][3]

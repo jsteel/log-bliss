@@ -70,7 +70,7 @@ def get_input(win_manager, request_queue_manager)
     end
     request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxx)
   when 'c'
-    # request_queue_manager.reset
+    request_queue_manager.reset
   when 'x'
     request_queue_manager.copy_current_request
   when '1'

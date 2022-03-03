@@ -29,25 +29,6 @@ class RequestQueueManager
     @request_window.visible_lines(&block)
   end
 
-  def current_request_lines(line_wrap, maxx)
-    return []
-    # lines = current_request
-    # return unless lines
-
-    # if line_wrap
-    #   tree = RequestTree.new(lines, maxx)
-    #   lines = tree.lines
-    # end
-
-    # last = [@log_slide.requests_last, lines.length].min
-
-    # (@log_slide.requests_first..last).each_with_index do |line_index, i|
-    #   line = lines[line_index]
-    #   next unless line
-    #   yield(line, i)
-    # end
-  end
-
   def move_cursor_down
     @request_index_window.move_cursor_down
     change_request
@@ -96,15 +77,19 @@ class RequestQueueManager
 
   def copy_current_request
     File.open("/tmp/log_copy", "w") do |file|
-     file.puts @lines_for_request.lines_for_request(@current_request_uuid).join("\n")
+     file.puts current_request_lines.join("\n")
     end
     system("cat /tmp/log_copy | pbcopy")
   end
 
   private
 
+  def current_request_lines
+    @request_queue.lines_for_request(@request_index_window.requests_current) || []
+  end
+
   def change_request
     $logger.info("Change request height #{@request_window.height}")
-    @request_window = RequestWindow.new(@request_queue.lines_for_request(@request_index_window.requests_current) || [], @request_window.height)
+    @request_window = RequestWindow.new(current_request_lines, @request_window.height)
   end
 end

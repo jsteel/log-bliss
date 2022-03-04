@@ -15,8 +15,12 @@ class SlidingWindowList
   attr_reader :requests_last
   attr_accessor :height
 
-  def initialize(height: 0, first: 0, last: nil, current: 0, max_size: nil)
+  SCROLL_STRATEGY_DEFAULT = :default
+  SCROLL_STRATEGY_SLIDE = :slide
+
+  def initialize(height: 0, first: 0, last: nil, current: 0, max_size: nil, scroll_strategy: SCROLL_STRATEGY_DEFAULT)
     $logger.info("--> h#{height} f#{first} l#{last} c#{current} m#{max_size}")
+    @scroll_strategy = scroll_strategy
     @requests_first = [first, 0].max
     @requests_current = current
     @requests_last = last || @requests_first + height
@@ -148,6 +152,8 @@ class SlidingWindowList
   end
 
   def move_cursor_down
+    return slide_down if @scroll_strategy == SCROLL_STRATEGY_SLIDE
+
     @requests_current = [@requests_current + 1, @max_size - 1].min
     if @requests_current >= @requests_last
       @requests_last += 1
@@ -156,6 +162,8 @@ class SlidingWindowList
   end
 
   def move_cursor_up
+    return slide_up if @scroll_strategy == SCROLL_STRATEGY_SLIDE
+
     @requests_current = [@requests_current - 1, 0].max
     if @requests_current < @requests_first
       @requests_first -= 1

@@ -22,8 +22,7 @@ class RequestQueue
 
       @requests[uuid] << line
     elsif @previous_uuid
-      # TODO
-      # append_line(@previous_uuid, line, win_manager.win.maxy, win_manager.win2&.maxy)
+      @requests[@previous_uuid] << line
     end
 
     { request_uuid: uuid, new_request: false }
@@ -31,11 +30,5 @@ class RequestQueue
 
   def lines_for_request(request_num)
     @requests[@request_queue[request_num]]
-  end
-
-  private
-
-  def append_line
-    # @requests[uuid][-1] += "\n#{line}"
   end
 end

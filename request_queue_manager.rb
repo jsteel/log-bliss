@@ -43,11 +43,11 @@ class RequestQueueManager
   end
 
   def move_log_down
-    @request_window.slide_cursor_down
+    @request_window.move_cursor_down
   end
 
   def move_log_up
-    @request_window.slide_cursor_up
+    @request_window.move_cursor_up
   end
 
   def toggle_column_collapse(column_num)
@@ -72,9 +72,10 @@ class RequestQueueManager
     @request_index_window.toggle_scrolling
   end
 
-  def toggle_line_wrap(height, width)
-     @line_wrap = !@line_wrap
-     @request_index_window.set_dimensions(height, @line_wrap ? width : Float::INFINITY)
+  def toggle_line_wrap(height, width, request_height, request_width)
+    @line_wrap = !@line_wrap
+    @request_index_window.set_dimensions(height, @line_wrap ? width : Float::INFINITY)
+    @request_window.set_dimensions(request_height, @line_wrap ? request_width : Float::INFINITY)
   end
 
   def reset_scroll_position(index_height, log_window_height)
@@ -87,8 +88,8 @@ class RequestQueueManager
     @request_slide = SlidingWindowList.new
     @log_slide = SlidingWindowList.new
     @request_queue = RequestQueue.new
-    @request_index_window = RequestWindow.new([])
-    @request_window = RequestWindow.new([])
+    @request_index_window = RequestWindow.new([], 0, SlidingWindowList::SCROLL_STRATEGY_DEFAULT)
+    @request_window = RequestWindow.new([], 0, SlidingWindowList::SCROLL_STRATEGY_SLIDE)
   end
 
   def copy_current_request
@@ -106,6 +107,6 @@ class RequestQueueManager
 
   def change_request
     $logger.info("Change request height #{@request_window.height}")
-    @request_window = RequestWindow.new(current_request_lines, @request_window.height)
+    @request_window = RequestWindow.new(current_request_lines, @request_window.height, SlidingWindowList::SCROLL_STRATEGY_SLIDE)
   end
 end

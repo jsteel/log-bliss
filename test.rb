@@ -18,10 +18,6 @@ require "./tail"
 
 # Ncurses tutorial: http://jbwyatt.com/ncurses.html#input
 
-# TODO
-# The todo for stack traces
-# Use strategy for sliding window lists instead of the move and slide functions
-
 go_back_count = nil
 
 options = {}
@@ -43,8 +39,6 @@ if ARGV[-1]
 else
   @input = PipeTail.new
 end
-
-
 
 def get_input(win_manager, request_queue_manager)
   str = win_manager.win.getstr.to_s.chomp
@@ -81,13 +75,13 @@ def get_input(win_manager, request_queue_manager)
   when '2'
     request_queue_manager.toggle_column_collapse(2)
   when 'w'
-    request_queue_manager.toggle_line_wrap(win_manager.win.maxy, win_manager.win.maxx)
+    request_queue_manager.toggle_line_wrap(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxx)
   when 'a'
     win_manager.grow_index_window_size(-1)
-    request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxy)
+    request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxx)
   when 's'
     win_manager.grow_index_window_size(1)
-    request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxy)
+    request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxx)
   when 'q'
     exit 0
   when 'p'

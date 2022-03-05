@@ -13,7 +13,10 @@ class RequestWindow
     changed_line = start_line != @request_slide.current
     @request_tree.add_line(raw_line)
     @request_tree.move_cursor(@request_slide.current) if changed_line
-    return changed_line
+    # Return true ff we changed lines or this is the first line that was added
+    # changed_line is false when we add the first line because the request slide
+    # starts at 0 when empty, and stays at 0 when you add 1 line.
+    return changed_line || @request_tree.lines.length == 1
   end
 
   def replace_line(request_uuid, raw_line)

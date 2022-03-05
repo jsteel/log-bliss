@@ -20,7 +20,6 @@ require "./tail"
 # TODO
 # Home and end
 # Rakefile for curses
-# Using on live file does not show the current request until you move
 
 go_back_count = nil
 

@@ -15,12 +15,11 @@ class RequestQueueManager
     line_info = @request_queue.add_line(raw_line)
 
     if line_info[:new_request]
-      @request_index_window.add_one(raw_line)
-      change_request
-    elsif line_info[:request_uuid] == @current_request_uuid
-      # TODO If it's the first line, send that as a replacement to request_index_window
-      #   first_line = lines.find { |line| line =~ /Processing/ } || lines.first
-      # @request_log_window.add_one
+      if @request_index_window.add_one(raw_line)
+        change_request
+      end
+    elsif raw_line =~ /Processing by/
+      @request_index_window.replace_line(line_info[:request_uuid], raw_line)
     end
   end
 
@@ -78,12 +77,6 @@ class RequestQueueManager
     @request_window.set_dimensions(request_height, @line_wrap ? request_width : Float::INFINITY)
   end
 
-  def reset_scroll_position(index_height, log_window_height)
-    # @index_height = index_height
-    # @log_window_height = log_window_height
-    # @request_slide.reset_scroll_position(index_height, @request_queue.length)
-  end
-
   def reset
     @request_slide = SlidingWindowList.new
     @log_slide = SlidingWindowList.new
@@ -106,7 +99,6 @@ class RequestQueueManager
   end
 
   def change_request
-    $logger.info("Change request height #{@request_window.height}")
     @request_window = RequestWindow.new(current_request_lines, @request_window.height, SlidingWindowList::SCROLL_STRATEGY_SLIDE)
   end
 end

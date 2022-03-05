@@ -1,18 +1,23 @@
 require "./request_lexer"
+require 'forwardable'
 
 class RequestWindow
   def initialize(raw_lines, height = 0, scroll_strategy = nil)
     @request_tree = RequestTree.new(raw_lines)
-    # TODO Initialize sliding window. I wasn't using a sliding window list for the request window
-    # before. Should I be? Or should it just be a simple size? Could pass the windowing function into
-    # here (strategy pattern?).
     @request_slide = SlidingWindowList.new(height: height, max_size: @request_tree.lines.count, scroll_strategy: scroll_strategy)
   end
 
   def add_one(raw_line)
+    start_line = @request_slide.requests_current
     @request_slide.add_one
+    changed_line = start_line != @request_slide.requests_current
     @request_tree.add_line(raw_line)
-    @request_tree.move_cursor(@request_slide.requests_current)
+    @request_tree.move_cursor(@request_slide.requests_current) if changed_line
+    return changed_line
+  end
+
+  def replace_line(request_uuid, raw_line)
+    @request_tree.replace_line(request_uuid, raw_line)
   end
 
   extend Forwardable
@@ -33,7 +38,6 @@ class RequestWindow
   end
 
   def set_dimensions(height, width)
-    $logger.info("set dimensions #{height}, #{width}")
     @request_tree.new_width(width) if width
 
     current_line =
@@ -55,7 +59,6 @@ class RequestWindow
     (@request_slide.requests_first...@request_slide.requests_last).each_with_index do |line_index, i|
       line = @request_tree.lines[line_index]
       next unless line
-      # $logger.info("line #{line}")
       yield(line_index == @request_slide.requests_current, line, i)
     end
   end

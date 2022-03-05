@@ -43,7 +43,7 @@ class RequestTree
     @lines = lines.collect { |line| RequestLexer.new(line).tokens }
     @lines[0].unshift([:cursor, nil]) unless @lines.empty?
     @width = width
-# $logger.info("width #{width}")
+
     @lines.each_with_index do |line, i|
       line.each do |token|
         token[3] = i
@@ -58,8 +58,9 @@ class RequestTree
   end
 
   def add_line(raw_line)
-    line = RequestLexer.new(raw_line).tokens
+    line = tokens_from_raw_line(raw_line)
     last_line = @lines[-1]
+
     if last_line
       last_token = last_line[-1]
       last_line_num = last_token[3] + 1
@@ -67,29 +68,49 @@ class RequestTree
       last_line_num = 0
       line.unshift([:cursor, nil])
     end
-    add_token_lengths(line)
+
     line.each do |token|
       token[3] = last_line_num
     end
+
     add_token_lengths(line)
     lines << line
     tokens_from_lines
     fit_width
   end
 
+  def replace_line(request_uuid, raw_line)
+    request_uuid =~ /(request_uuid:[\w-]+)/
+    request_uuid = $1
+
+    new_line = tokens_from_raw_line(raw_line)
+
+    @lines.each_with_index do |line, i|
+      line.each do |token|
+        if token[0] == :request_uuid && token[1] == request_uuid
+          if cursor = line.find { |token| token[0] == :cursor }
+            new_line.unshift(cursor)
+          end
+          # Add the line number
+          new_line.each do |new_token|
+            new_token[3] = token[3]
+          end
+          @lines[i] = new_line
+          return
+        end
+      end
+    end
+  end
+
   def new_width(width)
-    # $logger.info("new width #{@lines}")
     @width = width
     tokens_from_lines
     fit_width
-    # $logger.info("new width fit #{@lines}")
   end
 
   def move_cursor(new_position)
     cursor = nil
-    # $logger.info("New position #{new_position} - #{@lines}")
 
-    # TODO Store a pointer to the cursor always so I don't have to find it
     @lines.each do |line|
       line.each do |token|
         cursor = token if token[0] == :cursor
@@ -193,5 +214,10 @@ class RequestTree
         cur_line_spare_room = 0
       end
     end
+  end
+
+  def tokens_from_raw_line(raw_line)
+    new_line = RequestLexer.new(raw_line).tokens
+    add_token_lengths(new_line)
   end
 end

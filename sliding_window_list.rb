@@ -19,7 +19,6 @@ class SlidingWindowList
   SCROLL_STRATEGY_SLIDE = :slide
 
   def initialize(height: 0, first: 0, last: nil, current: 0, max_size: nil, scroll_strategy: SCROLL_STRATEGY_DEFAULT)
-    $logger.info("--> h#{height} f#{first} l#{last} c#{current} m#{max_size}")
     @scroll_strategy = scroll_strategy
     @requests_first = [first, 0].max
     @requests_current = current
@@ -33,107 +32,20 @@ class SlidingWindowList
 
     cur_height = @requests_last - @requests_first
     change_height(cur_height, @height)
-    # grow_amount = @height - cur_height
-    # room_to_grow = @max_size - @requests_last
-    # grow_at_end = [grow_amount, room_to_grow].min
-    # grow_amount -= grow_at_end
-    # @requests_last += grow_at_end
-    # @requests_first = [@requests_first - grow_amount, 0].max
-  end
-
-  # Instead of setting a new max size, just create an entirely new sliding window
-  # list. Find the line for the first item and the current, you can create new
-  # matching sliding window from those two things plus max size and max height
-  def max_size=(new_max_size)
-    if new_max_size > @max_size
-      @height = [@height, @max_size].min
-      new_height(@height)
-      @max_size = new_max_size
-    else
-      @max_size = new_max_size
-      # Push 
-    end
-    return
-
-    debug("max_sizes #{new_max_size}:")
-    if new_max_size > @max_size
-      grow_amount = new_max_size - @max_size
-      height_used = @requests_last - @requests_first
-      p height_used
-      room_to_grow = @height - height_used
-      p room_to_grow
-
-      grow_amount = [grow_amount, room_to_grow].min
-      room_to_grow = new_max_size - @requests_last
-
-      grow_at_end = [grow_amount, room_to_grow].min
-      grow_amount -= grow_at_end
-      @requests_last += grow_at_end
-      @requests_first = [@requests_first - grow_amount, 0].max
-    else
-      shrink_amount = @max_size - new_max_size
-      # Use the free space at the end first
-      shrink_amount -= (@height - (@requests_last - @requests_first)).clamp(0, shrink_amount)
-      # $logger.info("shink amount #{shrink_amount}")
-      # Then shrink past entries at the end
-      room_to_shrink_after = [@requests_last - @requests_current - 1, 0].max
-      # $logger.info("shink amount #{room_to_shrink_after}")
-      shrink_after = [shrink_amount, room_to_shrink_after].min
-      shrink_amount -= shrink_after
-      # $logger.info("shink amount #{shrink_amount}")
-      @requests_last -= shrink_after
-      # Finally shrink in front the rest of the way
-      @requests_first = @requests_first + shrink_amount
-    end
-
-    @max_size = new_max_size
-    debug("max_size")
-  end
-
-  # TODO Think I'm not using this
-  def change_height(current_height, new_height)
-    debug("new_heights")
-    if new_height > current_height
-      grow_amount = new_height - current_height
-      room_to_grow = @max_size - @requests_last
-      grow_at_end = [grow_amount, room_to_grow].min
-      grow_amount -= grow_at_end
-      @requests_last += grow_at_end
-      @requests_first = [@requests_first - grow_amount, 0].max
-    else
-      debug("shrink")
-      shrink_amount = current_height - new_height
-      # Use the free space at the end first
-      shrink_amount -= (current_height - (@requests_last - @requests_first)).clamp(0, shrink_amount)
-      # Then shrink past entries at the end
-      room_to_shrink_after = @requests_last - @requests_current - 1
-      shrink_after = [shrink_amount, room_to_shrink_after].min
-      shrink_amount -= shrink_after
-      @requests_last -= shrink_after
-      # Finally shrink in front the rest of the way
-      @requests_first = @requests_first + shrink_amount
-    end
-    # debug("new_height")
   end
 
   def move_cursor(new_line_number)
-    debug("move cursor- #{new_line_number}: ")
     @requests_current = new_line_number
 
     if @requests_current < @requests_first
-      debug("move cursor0 #{new_line_number}")
       diff = @requests_first - @requests_current
       @requests_first = @requests_current
       @requests_last -= diff
-      debug("move cursor00 #{new_line_number}")
     elsif @requests_current >= @requests_last
-      debug("move cursor1 #{new_line_number}")
       diff = @requests_current - @requests_last + 1
       @requests_last = @requests_current + 1
       @requests_first += diff
-      debug("move cursor2 #{new_line_number}")
     end
-    debug("move cursor+ #{new_line_number}: ")
   end
 
   def add_one
@@ -143,7 +55,6 @@ class SlidingWindowList
       @requests_last += 1
       if @requests_last - @requests_first > @height
         @requests_first += 1
-        debug("add one line")
         @requests_current = [@requests_current, @requests_first].max
       end
     elsif @requests_last < @height
@@ -172,7 +83,6 @@ class SlidingWindowList
   end
 
   def slide_down
-    debug("slide down")
     return if @requests_last == @max_size
 
     @requests_current += 1
@@ -198,18 +108,27 @@ class SlidingWindowList
     end
   end
 
-  def reset_scroll_position(window_height, max_height, scroll_to_start = false)
-    # if scroll_to_start
-    #   @requests_current = 0
-    # else
-    #   @requests_current = [@requests_current, max_height].min
-    # end
-    # @max_size = max_height
-    # @requests_last = [@requests_current + window_height - 1, @max_size].min
-    # @requests_first = [@requests_last - window_height, 0].max
-  end
+  private
 
-  def debug(extra)
-    $logger.info("List #{extra}: f#{@requests_first} c#{@requests_current} l#{@requests_last} h#{@height} m#{@max_size}")
+  def change_height(current_height, new_height)
+    if new_height > current_height
+      grow_amount = new_height - current_height
+      room_to_grow = @max_size - @requests_last
+      grow_at_end = [grow_amount, room_to_grow].min
+      grow_amount -= grow_at_end
+      @requests_last += grow_at_end
+      @requests_first = [@requests_first - grow_amount, 0].max
+    else
+      shrink_amount = current_height - new_height
+      # Use the free space at the end first
+      shrink_amount -= (current_height - (@requests_last - @requests_first)).clamp(0, shrink_amount)
+      # Then shrink past entries at the end
+      room_to_shrink_after = @requests_last - @requests_current - 1
+      shrink_after = [shrink_amount, room_to_shrink_after].min
+      shrink_amount -= shrink_after
+      @requests_last -= shrink_after
+      # Finally shrink in front the rest of the way
+      @requests_first = @requests_first + shrink_amount
+    end
   end
 end

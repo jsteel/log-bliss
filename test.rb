@@ -2,7 +2,6 @@
 
 require "optparse"
 require "curses"
-require "pry-remote"
 
 require "./window_manager"
 require "./request_queue_manager"
@@ -17,6 +16,11 @@ require "./tail"
 # FAQ https://invisible-island.net/ncurses/ncurses.faq.html
 
 # Ncurses tutorial: http://jbwyatt.com/ncurses.html#input
+
+# TODO
+# Home and end
+# Rakefile for curses
+# Using on live file does not show the current request until you move
 
 go_back_count = nil
 
@@ -41,21 +45,22 @@ else
 end
 
 def get_input(win_manager, request_queue_manager)
-  str = win_manager.win.getstr.to_s.chomp
-  $logger.info("INPUT: #{str}") unless str.empty?
+  win_manager.win.keypad = true
+  str = win_manager.win.getch
+  return if str.nil?
 
-  case str
-  when 'j'
+  case str.ord
+  when 106 # j
     request_queue_manager.move_cursor_down
-  when 'k'
+  when 107 # k
     request_queue_manager.move_cursor_up
-  when 'm'
+  when 109 # m
     request_queue_manager.move_log_down
-  when ','
+  when 44 # ,
     request_queue_manager.move_log_up
-  when 'i'
+  when 105 # i
     request_queue_manager.toggle_scrolling
-  when 'u'
+  when 117 # u
     if win_manager.screen_layout == :split_horizontal
       win_manager.screen_layout = :split_vertical
     elsif win_manager.screen_layout == :split_vertical
@@ -66,26 +71,32 @@ def get_input(win_manager, request_queue_manager)
       win_manager.screen_layout = :split_horizontal
     end
     request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxx)
-  when 'c'
+  when 99 # c
     request_queue_manager.reset
-  when 'x'
+  when 120 # x
     request_queue_manager.copy_current_request
-  when '1'
+  when 49 # 1
     request_queue_manager.toggle_column_collapse(1)
-  when '2'
+  when 50 # 2
     request_queue_manager.toggle_column_collapse(2)
-  when 'w'
+  when 119 # w
     request_queue_manager.toggle_line_wrap(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxx)
-  when 'a'
+  when 97 # a
     win_manager.grow_index_window_size(-1)
     request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxx)
-  when 's'
+  when 115 # s
     win_manager.grow_index_window_size(1)
     request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxx)
-  when 'q'
+  when 113 # q
+  when 27 # escape
     exit 0
-  when 'p'
+  when 112 # p
     sleep 10
+  when Curses::Key::NPAGE
+    $logger.info("page next")
+  when Curses::Key::PPAGE
+  when Curses::Key::HOME
+  when Curses::Key::END
   end
 end
 

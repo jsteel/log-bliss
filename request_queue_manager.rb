@@ -95,7 +95,7 @@ class RequestQueueManager
   private
 
   def current_request_lines
-    @request_queue.lines_for_request(@request_index_window.requests_current) || []
+    @request_queue.lines_for_request(@request_index_window.current) || []
   end
 
   def change_request

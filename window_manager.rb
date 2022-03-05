@@ -99,6 +99,7 @@ class WindowManager
     # height, width, top, left
     @win = Curses::Window.new(0, @vertical_index_window_size, 0, 0)
     @win3 = Curses::Window.new(0, 1, 0, @vertical_index_window_size)
+    @win3.addstr("┃" * @win3.maxy)
     @win3.refresh
     @win2 = Curses::Window.new(0, Curses.cols - @vertical_index_window_size - 1, 0, @vertical_index_window_size + 1)
     @win.nodelay = true
@@ -107,7 +108,10 @@ class WindowManager
   def setup_full_request
     # height, width, top, left
     @win = Curses::Window.new(1, 0, 0, 0)
-    @win2 = Curses::Window.new(Curses.lines - 1, 0, 1, 0)
+    @win2 = Curses::Window.new(Curses.lines - 2, 0, 2, 0)
+    @win3 = Curses::Window.new(1, 0, 1, 0)
+    @win3.addstr("━" * @win3.maxx)
+    @win3.refresh
     @win.nodelay = true
   end
 

@@ -8,11 +8,11 @@ class RequestWindow
   end
 
   def add_one(raw_line)
-    start_line = @request_slide.requests_current
+    start_line = @request_slide.current
     @request_slide.add_one
-    changed_line = start_line != @request_slide.requests_current
+    changed_line = start_line != @request_slide.current
     @request_tree.add_line(raw_line)
-    @request_tree.move_cursor(@request_slide.requests_current) if changed_line
+    @request_tree.move_cursor(@request_slide.current) if changed_line
     return changed_line
   end
 
@@ -21,16 +21,16 @@ class RequestWindow
   end
 
   extend Forwardable
-  def_delegators :@request_slide, :toggle_scrolling, :requests_current, :height
+  def_delegators :@request_slide, :toggle_scrolling, :current, :height
 
   def move_cursor_up
     @request_slide.move_cursor_up
-    @request_tree.move_cursor(@request_slide.requests_current)
+    @request_tree.move_cursor(@request_slide.current)
   end
 
   def move_cursor_down
     @request_slide.move_cursor_down
-    @request_tree.move_cursor(@request_slide.requests_current)
+    @request_tree.move_cursor(@request_slide.current)
   end
 
   def toggle_column_collapse(column_num, collumn_collapsed)
@@ -49,17 +49,17 @@ class RequestWindow
 
     @request_slide = SlidingWindowList.new(
       height: height,
-      first: @request_slide.requests_first || 0,
+      first: @request_slide.first || 0,
       current: current_line ? current_line : 0,
       max_size: @request_tree.lines.count
     )
   end
 
   def visible_lines
-    (@request_slide.requests_first...@request_slide.requests_last).each_with_index do |line_index, i|
+    (@request_slide.first...@request_slide.last).each_with_index do |line_index, i|
       line = @request_tree.lines[line_index]
       next unless line
-      yield(line_index == @request_slide.requests_current, line, i)
+      yield(line_index == @request_slide.current, line, i)
     end
   end
 end

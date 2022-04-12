@@ -1,4 +1,5 @@
 require 'set'
+require './help'
 
 class WindowManager
   attr_reader :win
@@ -44,12 +45,15 @@ class WindowManager
       setup_full_request
     elsif new_layout == :full_index
       setup_full_index
+    elsif new_layout == :help
+      render_help
     else
       raise "Invalid window layout #{new_layout}"
     end
   end
 
   def render
+    return if screen_layout == :help
     redraw_index
     draw_request
   end
@@ -204,5 +208,13 @@ class WindowManager
     else
       Curses.color_pair(0)
     end
+  end
+
+  def render_help
+    help_text = "\n\n\n#{HELP_TEXT}"
+    @win = Curses::Window.new(0, 0, 0, 0)
+    @win.addstr(help_text)
+    @win.refresh
+    @win.nodelay = true
   end
 end

@@ -131,12 +131,12 @@ class WindowManager
     win = @win
     win.setpos(0, 0)
     # Clear in case the results are empty
-    win.clrtoeol()
+    win.clrtoeol
 
     @request_queue_manager.index_lines do |selected, line, i|
       win.setpos(i, 0)
       print_line(line, win, selected ? Curses.color_pair(2) : Curses.color_pair(1))
-      win.clrtoeol()
+      win.clrtoeol
     end
 
     win.setpos(win.cury + 1, 0)
@@ -151,12 +151,12 @@ class WindowManager
     win = @win2
     win.setpos(0, 0)
     # Clear in case the results are empty
-    win.clrtoeol()
+    win.clrtoeol
 
     @request_queue_manager.request_lines do |selected, line, i|
       win.setpos(i, 0)
       print_line(line, win)
-      win.clrtoeol()
+      win.clrtoeol
     end
 
     win.setpos(win.cury + 1, 0)

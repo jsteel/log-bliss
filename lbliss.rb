@@ -7,19 +7,6 @@ require "./window_manager"
 require "./request_queue_manager"
 require "./tail"
 
-# [20:44:47.238] [request_uuid:rake-e857b461] Rails schema is uncached. Reading from the database now data_sources/8c9fbaa08ae19d9ee9f298b7af242f11314ca04c}
-# Helpful tutorial: https://www.2n.pl/blog/basics-of-curses-library-in-ruby-make-awesome-terminal-apps
-
-# Getting input https://stackoverflow.com/questions/53809310/workaround-for-ncurses-multi-thread-read-and-write
-
-# Ncurses docs: https://invisible-island.net/ncurses/ncurses.faq.html#multithread
-# FAQ https://invisible-island.net/ncurses/ncurses.faq.html
-
-# Ncurses tutorial: http://jbwyatt.com/ncurses.html#input
-
-# TODO
-# Home and end
-
 go_back_count = nil
 
 options = {}
@@ -44,7 +31,7 @@ end
 
 @previous_screen_layout = nil
 
-def get_input(win_manager, request_queue_manager)
+def get_user_input(win_manager, request_queue_manager)
   win_manager.win.keypad = true
   str = win_manager.win.getch
   return if str.nil?
@@ -129,6 +116,7 @@ win_manager = WindowManager.new(request_queue_manager)
 
 request_queue_manager.set_dimensions(win_manager.win.maxy, nil, win_manager.win2&.maxy, nil)
 
+# Process the amount we were supposed to go back before handling any new input
 handle_lines(buffer, win_manager, request_queue_manager) if buffer
 
 raw_input = ""
@@ -137,7 +125,7 @@ begin
   while true
     raw_input += @input.get_more
     raw_input = handle_lines(raw_input, win_manager, request_queue_manager)
-    get_input(win_manager, request_queue_manager)
+    get_user_input(win_manager, request_queue_manager)
     win_manager.render
   end
 rescue Interrupt

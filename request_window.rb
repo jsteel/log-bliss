@@ -1,4 +1,4 @@
-require "./request_lexer"
+require "./request_tree"
 require 'forwardable'
 
 class RequestWindow

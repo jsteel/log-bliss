@@ -1,0 +1,31 @@
+# Bugs
+Word wrap - When word wrap is on, it's treating the wrapped parts as their own line. This throws off which request is shown below.
+  The request queue manager knows what it's supposed to be on, but the renderer does not.
+  @request_index_window.visible_lines is not getting what it should.
+  It's the move up and down commands. That is what is not taking into account the fact that it's word wrapped.
+  Also, the highlighting should be highlighting both lines
+  request_tree.move_cursor is the one. The sliding window is definitelly correct
+
+BUG Clear then next line blows up
+log request is not sliding. It's doing the cursor mode but you cannot see the cursor
+
+# Features
+Line highlight should do the entire line and it should get rid of the colour on that line.
+
+Implement home and end
+
+
+# Notes
+Helpful tutorial: https://www.2n.pl/blog/basics-of-curses-library-in-ruby-make-awesome-terminal-apps
+
+Getting input https://stackoverflow.com/questions/53809310/workaround-for-ncurses-multi-thread-read-and-write
+
+Ncurses docs: https://invisible-island.net/ncurses/ncurses.faq.html#multithread
+FAQ https://invisible-island.net/ncurses/ncurses.faq.html
+
+Ncurses tutorial: http://jbwyatt.com/ncurses.html#input
+
+Asynchronous input
+Reopening /dev/tty
+Removing ansi character codes
+Scrolling example

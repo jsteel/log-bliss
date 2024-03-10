@@ -48,17 +48,18 @@ def get_user_input(win_manager, request_queue_manager)
   when 105 # i
     request_queue_manager.toggle_scrolling
   when 117 # u
-    if win_manager.screen_layout == :split_horizontal
-      win_manager.screen_layout = :split_vertical
-    elsif win_manager.screen_layout == :split_vertical
-      win_manager.screen_layout = :full_request
-    elsif win_manager.screen_layout == :full_request
-      win_manager.screen_layout = :full_index
+    if win_manager.split_horizontal_mode?
+      win_manager.split_vertical_mode
+    elsif win_manager.split_vertical_mode?
+      win_manager.full_request_mode
+    elsif win_manager.full_request_mode?
+      win_manager.full_index_mode
     else
-      win_manager.screen_layout = :split_horizontal
+      win_manager.split_horizontal_mode
     end
     request_queue_manager.set_dimensions(win_manager.win.maxy, win_manager.win.maxx, win_manager.win2&.maxy, win_manager.win2&.maxx)
   when 99 # c
+    $logger.info("clear")
     request_queue_manager.reset
   when 120 # x
     request_queue_manager.copy_current_request
@@ -89,12 +90,10 @@ def get_user_input(win_manager, request_queue_manager)
 end
 
 def show_help(win_manager)
-  if @previous_screen_layout
-    win_manager.screen_layout = @previous_screen_layout
-    @previous_screen_layout = nil
+  if win_manager.help_mode?
+    win_manager.close_help
   else
-    @previous_screen_layout = win_manager.screen_layout
-    win_manager.screen_layout = :help
+    win_manager.help_mode
   end
 end
 

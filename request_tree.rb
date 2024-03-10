@@ -4,24 +4,15 @@ class RequestTree
   attr_reader :lines
 
   def initialize(lines, width = Float::INFINITY)
-    @lines = lines.collect { |line| RequestLexer.new(line).tokens }
-    @lines[0].unshift([:cursor, nil]) unless @lines.empty?
+    @raw_lines = lines
     @width = width
 
-    @lines.each_with_index do |line, i|
-      line.each do |token|
-        token[3] = i
-      end
-    end
-
-    @columns_collapsed = []
-
-    tokens_from_lines
-    add_token_lengths(@tokens)
-    fit_width
+    setup
   end
 
   def add_line(raw_line)
+    @raw_lines << raw_line
+
     line = tokens_from_raw_line(raw_line)
     last_line = @lines[-1]
 

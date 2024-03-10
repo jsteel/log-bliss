@@ -74,6 +74,7 @@ class RequestQueueManager
     @request_index_window.toggle_scrolling
   end
 
+  # TODO This should be able to ask for the width and height instead of passed as args
   def toggle_line_wrap(height, width, request_height, request_width)
     @line_wrap = !@line_wrap
     @request_index_window.set_dimensions(height, @line_wrap ? width : Float::INFINITY)

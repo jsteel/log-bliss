@@ -1,10 +1,4 @@
-# Bugs
-Word wrap - When word wrap is on, it's treating the wrapped parts as their own line. This throws off which request is shown below.
-  The request queue manager knows what it's supposed to be on, but the renderer does not.
-  @request_index_window.visible_lines is not getting what it should.
-  It's the move up and down commands. That is what is not taking into account the fact that it's word wrapped.
-  Also, the highlighting should be highlighting both lines
-  request_tree.move_cursor is the one. The sliding window is definitelly correct
+Highlight all lines of the active word wrapped line
 
 BUG Clear then next line blows up
 log request is not sliding. It's doing the cursor mode but you cannot see the cursor

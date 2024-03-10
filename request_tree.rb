@@ -43,6 +43,8 @@ class RequestTree
     fit_width
   end
 
+  # NOTE: This doesn't work at small sizes because the tokens have been broken up.
+  # In order to do this, each line would have to know the uuid it's associated with.
   def replace_line(request_uuid, raw_line)
     request_uuid =~ /(request_uuid:[\w-]+)/
     request_uuid = $1
@@ -117,7 +119,74 @@ class RequestTree
     new_width(@width)
   end
 
+  def prev_line_number
+    current_parent_line_num = nil
+    num_lines_to_move = 0
+
+    @lines.reverse.each_with_index do |line, line_number|
+      num_lines_to_move += 1 if current_parent_line_num
+      $logger.info("moving inc") if current_parent_line_num
+      line.each do |token|
+        if !current_parent_line_num
+          if token[0] == :cursor
+            current_parent_line_num = token[3]
+            $logger.info("moving a #{token}")
+          end
+        else
+          $logger.info("moving b #{token}")
+          if token[3] != current_parent_line_num
+            return num_lines_to_move
+          end
+        end
+      end
+    end
+
+    return nil
+  end
+
+  def next_line_number
+    current_parent_line_num = nil
+    num_lines_to_move = 0
+
+    @lines.each_with_index do |line, line_number|
+      num_lines_to_move += 1 if current_parent_line_num
+      $logger.info("moving inc") if current_parent_line_num
+      line.each do |token|
+        if !current_parent_line_num
+          if token[0] == :cursor
+            current_parent_line_num = token[3]
+            $logger.info("moving a #{token}")
+          end
+        else
+          $logger.info("moving b #{token}")
+          if token[3] != current_parent_line_num
+            return num_lines_to_move
+          end
+        end
+      end
+    end
+
+    return nil
+  end
+
   private
+
+  def setup
+    @lines = @raw_lines.collect { |line| RequestLexer.new(line).tokens }
+    @lines[0].unshift([:cursor, nil]) unless @lines.empty?
+
+    @lines.each_with_index do |line, i|
+      line.each do |token|
+        token[3] = i
+      end
+    end
+
+    @columns_collapsed = []
+
+    tokens_from_lines
+    add_token_lengths(@tokens)
+    fit_width
+  end
 
   def add_token_lengths(tokens)
     # Add the length to each token

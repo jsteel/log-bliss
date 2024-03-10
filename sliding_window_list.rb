@@ -31,6 +31,7 @@ class SlidingWindowList
     @height = height
 
     cur_height = @last - @first
+    $logger.info("call change_height #{@height} -- #{current}")
     change_height(cur_height, @height)
   end
 
@@ -48,6 +49,9 @@ class SlidingWindowList
     end
   end
 
+# ### # ## The problem is here. We are calling add_one on the first line
+# which bumps up current and first. But really there is only one line
+# so they should both still point at 0.
   def add_one
     @max_size += 1
 
@@ -62,23 +66,27 @@ class SlidingWindowList
     end
   end
 
-  def move_cursor_down
-    return slide_down if @scroll_strategy == SCROLL_STRATEGY_SLIDE
+  def move_cursor_down(num_lines = 1)
+    num_lines.times do
+      return slide_down if @scroll_strategy == SCROLL_STRATEGY_SLIDE
 
-    @current = [@current + 1, @max_size - 1].min
-    if @current >= @last
-      @last += 1
-      @first += 1
+      @current = [@current + 1, @max_size - 1].min
+      if @current >= @last
+        @last += 1
+        @first += 1
+      end
     end
   end
 
-  def move_cursor_up
-    return slide_up if @scroll_strategy == SCROLL_STRATEGY_SLIDE
+  def move_cursor_up(num_lines = 1)
+    num_lines.times do
+      return slide_up if @scroll_strategy == SCROLL_STRATEGY_SLIDE
 
-    @current = [@current - 1, 0].max
-    if @current < @first
-      @first -= 1
-      @last -= 1
+      @current = [@current - 1, 0].max
+      if @current < @first
+        @first -= 1
+        @last -= 1
+      end
     end
   end
 
@@ -105,12 +113,14 @@ class SlidingWindowList
       @last = @max_size - 1
       @current = @last
       @first = [0, @last - @height].max
+      $logger.info("Set first1 #{@first}")
     end
   end
 
   private
 
   def change_height(current_height, new_height)
+    $logger.info("change_height #{current_height} #{new_height}")
     if new_height > current_height
       grow_amount = new_height - current_height
       room_to_grow = @max_size - @last
@@ -118,7 +128,8 @@ class SlidingWindowList
       grow_amount -= grow_at_end
       @last += grow_at_end
       @first = [@first - grow_amount, 0].max
-    else
+      $logger.info("Set first2 #{@first}")
+    elsif new_height > current_height
       shrink_amount = current_height - new_height
       # Use the free space at the end first
       shrink_amount -= (current_height - (@last - @first)).clamp(0, shrink_amount)
@@ -128,7 +139,19 @@ class SlidingWindowList
       shrink_amount -= shrink_after
       @last -= shrink_after
       # Finally shrink in front the rest of the way
+      #### # ## # # ## #
+      #
+      #
+      ##
+      #
+# => # # This is the problem. On initialization it's saying shrink 1, and setting that to the first. First should be set to 0
+#        Why doesn't this blow up when I first start?
+      ##
+      #
+
+      $logger.info("First or shrink #{@first} #{shrink_amount}")
       @first = @first + shrink_amount
+      $logger.info("Set first3 #{current_height} #{new_height} #{@first}")
     end
   end
 end

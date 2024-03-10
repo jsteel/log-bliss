@@ -2,7 +2,7 @@ require "test/unit"
 require "./request_tree"
 
 class RequestTreeTest < Test::Unit::TestCase
-  def test_run
+  def test_initializing_request_tree
     data = ["123456789"]
     tree = RequestTree.new(data, 5)
 
@@ -34,5 +34,13 @@ class RequestTreeTest < Test::Unit::TestCase
     tree = RequestTree.new(data, 5)
     tree.add_line("abcdefg")
     assert_equal tree.lines, [[[:cursor, nil, 0, 0], [:content, "12345", 5, 0]], [[:content, "6789", 4, 0]], [[:content, "abcde", 5, 1]], [[:content, "fg", 2, 1]]]
+  end
+
+  def test_replace_line
+    data = ["[02:35:46.764] [request_uuid:some_uuid] 123456789"]
+    tree = RequestTree.new(data, 5)
+    # Does nothing if no matching request uuid
+    tree.replace_line("another_uuid", "1234")
+    assert_equal tree.lines, [[[:cursor, nil, 0, 0], [:request_uuid, "some_uuid"], [:content, "12345", 5, 0]], [[:content, "6789", 4, 0]]]
   end
 end

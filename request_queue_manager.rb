@@ -13,13 +13,16 @@ class RequestQueueManager
 
   def add_line(raw_line)
     line_info = @request_queue.add_line(raw_line)
+    request_uuid = line_info[:request_uuid]
 
     if line_info[:new_request]
-      if @request_index_window.add_one(raw_line)
+      if @request_index_window.add_one(request_uuid, raw_line)
         change_request
       end
     elsif raw_line =~ /Processing by/
-      @request_index_window.replace_line(line_info[:request_uuid], raw_line)
+      # When we get the "Processing by" line, we want to replace the original line
+      # in the index window with it because it is much more descriptive.
+      @request_index_window.replace_line(request_uuid, raw_line)
     end
   end
 
